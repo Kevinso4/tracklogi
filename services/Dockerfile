@@ -16,6 +16,8 @@ WORKDIR /app
 COPY --from=builder /install /usr/local
 COPY common ./common
 COPY ${SERVICE} ./service
+# Tracking puede embeber el simulador (SIMULADOR=true) en despliegues de un solo contenedor.
+COPY simulator ./simulator
 RUN useradd --create-home --uid 10001 app
 USER app
 EXPOSE 8000

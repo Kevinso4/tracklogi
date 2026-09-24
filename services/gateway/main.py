@@ -153,7 +153,8 @@ class Credenciales(BaseModel):
 def _poner_cookie(respuesta: Response, refresh: str) -> None:
     respuesta.set_cookie(
         COOKIE_REFRESH, refresh, max_age=auth.REFRESH_DIAS * 86400, httponly=True, secure=COOKIE_SEGURA,
-        samesite="strict", path="/api/v1/auth",
+        # Con COOKIE_SECURE=true el frontend vive en otro dominio (Vercel → Render): hace falta SameSite=None.
+        samesite="none" if COOKIE_SEGURA else "strict", path="/api/v1/auth",
     )
 
 
@@ -213,7 +214,8 @@ async def logout(request: Request):
         except jwt.InvalidTokenError:
             pass
     respuesta = JSONResponse({"mensaje": "Sesión cerrada"})
-    respuesta.delete_cookie(COOKIE_REFRESH, path="/api/v1/auth")
+    respuesta.delete_cookie(COOKIE_REFRESH, path="/api/v1/auth", secure=COOKIE_SEGURA, httponly=True,
+                            samesite="none" if COOKIE_SEGURA else "strict")
     return respuesta
 
 

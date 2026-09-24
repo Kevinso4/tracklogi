@@ -13,12 +13,12 @@ import os
 import random
 import time
 from datetime import datetime, timezone
+from typing import Callable
 
 import httpx
 
 from common.logs import configurar_logs
 
-configurar_logs("simulator")
 log = logging.getLogger("simulator")
 
 FLEET = os.getenv("FLEET_URL", "http://fleet:8000")
@@ -111,7 +111,8 @@ def esperar(cliente: httpx.Client, url: str) -> None:
         time.sleep(3)
 
 
-def main() -> None:
+def main(activo: Callable[[], bool] = lambda: True) -> None:
+    """`activo` permite pausar la simulación (p. ej. dentro de Tracking cuando nadie mira el panel)."""
     cliente = httpx.Client(timeout=5)
     for url in (FLEET, TRACKING, SHIPMENT):
         esperar(cliente, url)
@@ -122,6 +123,8 @@ def main() -> None:
         time.sleep(INTERVALO)
         ahora = time.monotonic()
         dt, ultimo = ahora - ultimo, ahora
+        if not activo():
+            continue
         try:
             vehiculos = cliente.get(f"{FLEET}/api/v1/vehiculos", headers=CABECERAS).json()
             envios = cliente.get(f"{SHIPMENT}/api/v1/envios", params={"estado": "en_transito"},
@@ -149,4 +152,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    configurar_logs("simulator")
     main()

@@ -6,7 +6,10 @@ Los dispositivos se autentican con una API key (cabecera X-Device-Key); solo se 
 """
 import hashlib
 import logging
+import os
 import secrets
+import threading
+import time
 import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -46,8 +49,35 @@ def preparar_timescale() -> None:
         log.warning("TimescaleDB no disponible, se usa tabla normal: %s", exc)
 
 
-app = crear_app("tracking", "LogiTrack · Tracking Ingestion Service", al_iniciar=preparar_timescale,
-                usa_outbox=False)
+# Despliegue gratuito (Render): el simulador corre dentro de Tracking y solo mueve la flota mientras
+# alguien consulta la telemetría, para que los servicios puedan dormirse cuando nadie usa el panel.
+SIMULADOR = os.getenv("SIMULADOR", "false").lower() == "true"
+MINUTOS_ACTIVIDAD = float(os.getenv("SIMULADOR_MINUTOS_ACTIVIDAD", "10"))
+_ultima_consulta = time.monotonic()
+
+
+def _hay_actividad() -> bool:
+    return time.monotonic() - _ultima_consulta < MINUTOS_ACTIVIDAD * 60
+
+
+def al_iniciar() -> None:
+    preparar_timescale()
+    if SIMULADOR:
+        from simulator.main import main as simular
+
+        threading.Thread(target=simular, args=(_hay_actividad,), daemon=True, name="simulador").start()
+        log.info("Simulador embebido activo (pausa tras %.0f min sin consultas)", MINUTOS_ACTIVIDAD)
+
+
+app = crear_app("tracking", "LogiTrack · Tracking Ingestion Service", al_iniciar=al_iniciar, usa_outbox=False)
+
+
+@app.middleware("http")
+async def registrar_consulta(request: Request, call_next):
+    global _ultima_consulta
+    if request.method == "GET" and request.url.path.startswith("/api/v1/telemetria"):
+        _ultima_consulta = time.monotonic()
+    return await call_next(request)
 
 
 # ---------------------------------------------------------------- esquemas
