@@ -3,6 +3,10 @@
 Implementación funcional del **Momento 2** sobre la arquitectura definida en
 *LogiTrack — Arquitectura de Microservicios y Estrategia DevOps* (Momento 1).
 
+- **Aplicación desplegada:** https://tracklogi.onrender.com — usuario `operador`, contraseña `operador123`
+  (los servicios gratuitos de Render se duermen: el primer acceso puede tardar hasta un minuto).
+- **Explicación sencilla del sistema:** [docs/LogiTrack_Explicado_Facil.docx](docs/LogiTrack_Explicado_Facil.docx)
+
 | Pieza | Tecnología | Base de datos | Publica | Consume |
 |---|---|---|---|---|
 | **API Gateway** | FastAPI · JWT RS256 · Redis | — (Redis para rate limit y sesiones) | — | `#` (feed en vivo para el panel) |
