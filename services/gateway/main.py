@@ -53,7 +53,9 @@ COOKIE_REFRESH = "lt_refresh"
 COOKIE_SEGURA = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 
 redis = aioredis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"), decode_responses=True)
-http = httpx.AsyncClient(timeout=httpx.Timeout(5.0, connect=2.0))
+# En el plan gratuito de Render los servicios se duermen y tardan ~20-50 s en despertar: con 5 s el
+# gateway respondía 503 en el primer acceso. Un servicio caído de verdad sigue fallando rápido (conexión rechazada).
+http = httpx.AsyncClient(timeout=httpx.Timeout(float(os.getenv("PROXY_TIMEOUT_S", "60")), connect=10.0))
 circuitos = {nombre: CircuitBreaker(nombre) for nombre in SERVICIOS}
 bus = EventBus(os.environ.get("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/"), "gateway")
 feed: deque[dict] = deque(maxlen=100)
