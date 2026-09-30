@@ -52,6 +52,18 @@ export function useSesion() {
   return s;
 }
 
+/** Quién gestiona cada área. Refleja los requiere_rol del backend; el resto de roles solo consulta. */
+const GESTIONA: Record<"envios" | "flota" | "mantenimiento", string[]> = {
+  envios: ["admin", "operador"],
+  flota: ["admin", "gestor_flota"],
+  mantenimiento: ["admin", "gestor_flota"],
+};
+
+export function usePuede(area: keyof typeof GESTIONA) {
+  const { usuario } = useSesion();
+  return !!usuario && GESTIONA[area].includes(usuario.rol);
+}
+
 export const ETIQUETA_ROL: Record<string, string> = {
   admin: "Administrador",
   operador: "Operador logístico",

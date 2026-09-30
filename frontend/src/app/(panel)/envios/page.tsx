@@ -22,6 +22,7 @@ import {
 import { api } from "@/lib/api";
 import { CIUDADES, ESTADO_ENVIO, fmtFecha, fmtNum, hace } from "@/lib/formato";
 import { useDatos, useEventosEnVivo } from "@/lib/hooks";
+import { usePuede } from "@/lib/sesion";
 import type { Envio, EnvioDetalle, EstadoEnvio } from "@/lib/types";
 
 type Filtro = "todos" | EstadoEnvio;
@@ -153,6 +154,7 @@ function DetalleEnvio({ id, onCambio }: { id: string; onCambio: () => void }) {
   const [tipoInc, setTipoInc] = useState("averia");
   const [texto, setTexto] = useState("");
   const [ocupado, setOcupado] = useState(false);
+  const puede = usePuede("envios");
 
   async function ejecutar(ruta: string, json: unknown, mensaje: string) {
     setOcupado(true);
@@ -277,7 +279,7 @@ function DetalleEnvio({ id, onCambio }: { id: string; onCambio: () => void }) {
         </div>
       )}
 
-      {accion === null && (
+      {accion === null && puede && (
         <div className="flex flex-wrap gap-2 border-t border-hairline pt-4">
           {activo && <Boton onClick={() => { setAccion("entrega"); setTexto(""); }}>Registrar entrega</Boton>}
           {e.estado === "en_transito" && (
@@ -303,6 +305,7 @@ export default function Envios() {
   const [q, setQ] = useState("");
   const [creando, setCreando] = useState(false);
   const [detalle, setDetalle] = useState<string | null>(null);
+  const puede = usePuede("envios");
   const ruta = `/api/v1/envios?limite=200${filtro !== "todos" ? `&estado=${filtro}` : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
   const { datos, cargando, error, recargar } = useDatos<Envio[]>(ruta, 5000);
   const resumen = useDatos<{ por_estado: Record<EstadoEnvio, number>; total: number }>("/api/v1/envios/resumen", 5000);
@@ -322,9 +325,13 @@ export default function Envios() {
   return (
     <>
       <Encabezado titulo="Envíos" subtitulo="Ciclo de vida completo, de la orden a la prueba de entrega.">
-        <Boton onClick={() => setCreando(true)}>
-          <IconMas /> Nuevo envío
-        </Boton>
+        {puede ? (
+          <Boton onClick={() => setCreando(true)}>
+            <IconMas /> Nuevo envío
+          </Boton>
+        ) : (
+          <Badge tono="gray">Solo consulta</Badge>
+        )}
       </Encabezado>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

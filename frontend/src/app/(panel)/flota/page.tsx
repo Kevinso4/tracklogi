@@ -22,6 +22,7 @@ import {
 import { api } from "@/lib/api";
 import { CIUDADES, ESTADO_VEHICULO, fmtDia, fmtNum, hace, PRIORIDAD, TIPO_VEHICULO } from "@/lib/formato";
 import { useDatos, useEventosEnVivo } from "@/lib/hooks";
+import { usePuede } from "@/lib/sesion";
 import type { Alerta, Conductor, EstadoVehiculo, Posicion, Vehiculo } from "@/lib/types";
 
 type Vista = "vehiculos" | "conductores";
@@ -97,6 +98,7 @@ function DetalleVehiculo({ v, conductores, onCambio }: { v: Vehiculo; conductore
   const alertas = useDatos<Alerta[]>(`/api/v1/mantenimiento/alertas?vehiculo_id=${v.id}&limite=5`, 8000);
   const [conductor, setConductor] = useState(v.conductor?.id ?? "");
   const [ocupado, setOcupado] = useState(false);
+  const puede = usePuede("flota");
 
   async function cambiarEstado(estado: EstadoVehiculo) {
     setOcupado(true);
@@ -154,7 +156,7 @@ function DetalleVehiculo({ v, conductores, onCambio }: { v: Vehiculo; conductore
       </dl>
       {p && <p className="-mt-3 text-[12px] text-label-3">Telemetría {hace(p.registrado_en)}</p>}
 
-      <div>
+      {puede && <div>
         <h4 className="mb-2 text-[13px] font-semibold tracking-wide text-label-2 uppercase">Estado operativo</h4>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {(Object.keys(ESTADO_VEHICULO) as EstadoVehiculo[]).map((e) => (
@@ -172,11 +174,13 @@ function DetalleVehiculo({ v, conductores, onCambio }: { v: Vehiculo; conductore
           ))}
         </div>
         <p className="mt-2 text-[12px] text-label-3">Cada cambio publica vehicle.status_changed; si el vehículo sale de servicio, Shipment reasigna sus envíos.</p>
-      </div>
+      </div>}
 
       <div>
         <h4 className="mb-2 text-[13px] font-semibold tracking-wide text-label-2 uppercase">Conductor</h4>
-        <div className="flex gap-2">
+        {!puede ? (
+          <p className="text-[14px]">{v.conductor?.nombre ?? <span className="text-label-3">Sin conductor</span>}</p>
+        ) : <div className="flex gap-2">
           <Select value={conductor} onChange={(e) => setConductor(e.target.value)}>
             <option value="">Sin conductor</option>
             {conductores.map((c) => (
@@ -184,7 +188,7 @@ function DetalleVehiculo({ v, conductores, onCambio }: { v: Vehiculo; conductore
             ))}
           </Select>
           <Boton variante="secundario" disabled={!conductor || conductor === v.conductor?.id} cargando={ocupado} onClick={asignar}>Asignar</Boton>
-        </div>
+        </div>}
       </div>
 
       <div>
@@ -258,6 +262,7 @@ export default function Flota() {
   const [q, setQ] = useState("");
   const [creando, setCreando] = useState(false);
   const [sel, setSel] = useState<string | null>(null);
+  const puede = usePuede("flota");
   const vehiculos = useDatos<Vehiculo[]>("/api/v1/vehiculos", 5000);
   const conductores = useDatos<Conductor[]>("/api/v1/conductores", 15000);
   useEventosEnVivo(5, (e) => e.tipo === "vehicle.status_changed" && vehiculos.recargar());
@@ -272,7 +277,11 @@ export default function Flota() {
     <>
       <Encabezado titulo="Flota" subtitulo="Vehículos, conductores y estado operativo.">
         <Segmentado opciones={[{ valor: "vehiculos" as Vista, texto: "Vehículos" }, { valor: "conductores" as Vista, texto: "Conductores" }]} valor={vista} onChange={setVista} />
-        <Boton onClick={() => setCreando(true)}><IconMas /> {vista === "vehiculos" ? "Nuevo vehículo" : "Nuevo conductor"}</Boton>
+        {puede ? (
+          <Boton onClick={() => setCreando(true)}><IconMas /> {vista === "vehiculos" ? "Nuevo vehículo" : "Nuevo conductor"}</Boton>
+        ) : (
+          <Badge tono="gray">Solo consulta</Badge>
+        )}
       </Encabezado>
 
       {vista === "vehiculos" ? (

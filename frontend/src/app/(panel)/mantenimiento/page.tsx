@@ -21,6 +21,7 @@ import {
 import { api } from "@/lib/api";
 import { ESTADO_VEHICULO, fmtCOP, fmtDia, fmtFecha, fmtNum, hace, PRIORIDAD } from "@/lib/formato";
 import { useDatos, useEventosEnVivo } from "@/lib/hooks";
+import { usePuede } from "@/lib/sesion";
 import type { Alerta, Intervencion, Programa, Regla, Vehiculo } from "@/lib/types";
 
 type Vista = "alertas" | "programas" | "intervenciones" | "reglas";
@@ -157,10 +158,15 @@ export default function Mantenimiento() {
   }
 
   const r = resumen.datos;
+  const puede = usePuede("mantenimiento");
   return (
     <>
       <Encabezado titulo="Mantenimiento" subtitulo="Reglas sobre la telemetría, alertas predictivas y programa preventivo.">
-        <Boton onClick={() => setForm({})}><IconMas /> Registrar intervención</Boton>
+        {puede ? (
+          <Boton onClick={() => setForm({})}><IconMas /> Registrar intervención</Boton>
+        ) : (
+          <Badge tono="gray">Solo consulta</Badge>
+        )}
       </Encabezado>
 
       <section className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -206,7 +212,7 @@ export default function Mantenimiento() {
                       </p>
                     </div>
                     <Badge tono={a.estado === "abierta" ? pr.tono : "gray"}>{a.estado === "abierta" ? pr.texto : "Cerrada"}</Badge>
-                    {a.estado === "abierta" && (
+                    {a.estado === "abierta" && puede && (
                       <div className="flex gap-2">
                         <Boton variante="plano" onClick={() => cerrarAlerta(a.id)}>Descartar</Boton>
                         <Boton variante="secundario" onClick={() => setForm({ vehiculo_id: a.vehiculo_id })}>Atender</Boton>
@@ -243,7 +249,7 @@ export default function Mantenimiento() {
                       )}
                     </div>
                     <Badge tono={(p.dias_restantes ?? 99) < 7 ? "orange" : "gray"}>{p.dias_restantes != null ? `en ${p.dias_restantes} días` : "—"}</Badge>
-                    <Boton variante="secundario" onClick={() => setForm({ vehiculo_id: p.vehiculo_id, programa_id: p.id })}>Completar</Boton>
+                    {puede && <Boton variante="secundario" onClick={() => setForm({ vehiculo_id: p.vehiculo_id, programa_id: p.id })}>Completar</Boton>}
                   </li>
                 );
               })}
@@ -284,7 +290,7 @@ export default function Mantenimiento() {
                   </p>
                 </div>
                 <Badge tono={PRIORIDAD[rg.prioridad].tono}>{PRIORIDAD[rg.prioridad].texto}</Badge>
-                {rg.operador !== "presente" && (
+                {puede && rg.operador !== "presente" && (
                   <Input
                     type="number"
                     aria-label="Umbral"
@@ -293,9 +299,13 @@ export default function Mantenimiento() {
                     className="h-8 w-24 text-right text-[14px]"
                   />
                 )}
-                <div className="w-[60px]">
-                  <Interruptor etiqueta="" activo={rg.activa} onChange={(v) => editarRegla(rg, { activa: v })} />
-                </div>
+                {puede ? (
+                  <div className="w-[60px]">
+                    <Interruptor etiqueta="" activo={rg.activa} onChange={(v) => editarRegla(rg, { activa: v })} />
+                  </div>
+                ) : (
+                  <Badge tono={rg.activa ? "green" : "gray"}>{rg.activa ? "Activa" : "Inactiva"}</Badge>
+                )}
               </li>
             ))}
           </ul>

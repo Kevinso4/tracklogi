@@ -224,7 +224,7 @@ def crear_vehiculo(datos: VehiculoIn, db: Db, _=requiere_rol("gestor_flota")):
 
 @app.patch("/api/v1/vehiculos/{vehiculo_id}/estado", response_model=VehiculoOut, tags=["vehículos"])
 def cambiar_estado_vehiculo(
-    vehiculo_id: uuid.UUID, datos: CambioEstadoIn, db: Db, _=requiere_rol("gestor_flota", "operador")
+    vehiculo_id: uuid.UUID, datos: CambioEstadoIn, db: Db, _=requiere_rol("gestor_flota")
 ):
     v = obtener(db, vehiculo_id)
     cambiar_estado(db, v, datos.estado, datos.motivo)
