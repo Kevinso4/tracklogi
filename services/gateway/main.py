@@ -35,6 +35,8 @@ SERVICIOS = {
     "tracking": os.getenv("TRACKING_URL", "http://tracking:8000"),
     "shipment": os.getenv("SHIPMENT_URL", "http://shipment:8000"),
     "maintenance": os.getenv("MAINTENANCE_URL", "http://maintenance:8000"),
+    "notification": os.getenv("NOTIFICATION_URL", "http://notification:8000"),
+    "billing": os.getenv("BILLING_URL", "http://billing:8000"),
 }
 # Enrutamiento por prefijo: /api/v1/<prefijo>/** → servicio
 PREFIJOS = {
@@ -45,6 +47,8 @@ PREFIJOS = {
     "dispositivos": "tracking",
     "envios": "shipment",
     "mantenimiento": "maintenance",
+    "notificaciones": "notification",
+    "facturacion": "billing",
 }
 LIMITES_POR_MINUTO = {"admin": 600, "operador": 600, "gestor_flota": 600, "conductor": 300, "cliente": 120,
                       "anonimo": 30, "login": 10}

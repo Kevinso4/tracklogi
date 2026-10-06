@@ -66,6 +66,9 @@ export const IconTermometro = ({ className = "size-4" }: P) => (
 export const IconVelocidad = ({ className = "size-4" }: P) => (
   <svg {...base} className={className}><path d="M4.5 18a8.5 8.5 0 1 1 15 0" /><path d="m12 14 4-5" /></svg>
 );
+export const IconFactura = ({ className = "size-5" }: P) => (
+  <svg {...base} className={className}><path d="M6 2.5h12v19l-3-2-3 2-3-2-3 2z" /><path d="M9 7.5h6M9 11.5h6M9 15.5h3.5" /></svg>
+);
 export const IconLocalizar = ({ className = "size-4" }: P) => (
   <svg {...base} className={className}><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="2.2" /><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22" /></svg>
 );

@@ -3,7 +3,8 @@
 Implementación funcional del **Momento 2** sobre la arquitectura definida en
 *LogiTrack — Arquitectura de Microservicios y Estrategia DevOps* (Momento 1).
 
-- **Aplicación desplegada:** https://tracklogi.onrender.com — usuario `operador`, contraseña `operador123`
+- **Aplicación desplegada:** https://tracklogi.onrender.com — `operador` / `operador123` (envíos y facturación) o
+  `gestor` / `gestor123` (flota y mantenimiento)
   (los servicios gratuitos de Render se duermen: el primer acceso puede tardar hasta un minuto).
 - **Explicación sencilla del sistema:** [docs/LogiTrack_Explicado_Facil.docx](docs/LogiTrack_Explicado_Facil.docx)
 
@@ -14,6 +15,8 @@ Implementación funcional del **Momento 2** sobre la arquitectura definida en
 | **Tracking Ingestion** | FastAPI async | `tracking_db` (TimescaleDB, hypertable 7 días) | `telemetry.raw`, `telemetry.aggregated` | — |
 | **Shipment Service** | FastAPI · SQLAlchemy · Outbox | `shipment_db` | `shipment.created/assigned/reassigned/incident/delayed/delivered/returned` | `vehicle.status_changed` |
 | **Maintenance Service** | FastAPI · motor de reglas | `maintenance_db` | `maintenance.alert/scheduled/completed` | `telemetry.aggregated` |
+| **Notification Service** | FastAPI · SMTP | `notification_db` | `notification.sent/failed` | `shipment.*` (asignado, retrasado, entregado…), `maintenance.alert` |
+| **Billing Service** | FastAPI | `billing_db` | `invoice.issued` | `shipment.delivered` |
 | **Frontend** | Next.js 15 · TypeScript · Tailwind · MapLibre GL | — | — | vía Gateway (REST + SSE) |
 
 Infraestructura: **PostgreSQL 16 + TimescaleDB**, **RabbitMQ** (exchange topic + DLQ por cola), **Redis**, todo en Docker.
@@ -57,8 +60,15 @@ npm run dev
 | http://localhost:3000/seguimiento | Seguimiento público de envíos (sin sesión) |
 | http://localhost:8000/docs | Swagger del API Gateway |
 | http://localhost:15672 | Consola de RabbitMQ (`logitrack` / `logitrack`) |
+| http://localhost:8025 | Mailpit: correos que envía Notification |
 
-Usuarios de demostración: `operador / operador123`, `gestor / gestor123`, `admin / admin123`.
+Usuarios de demostración:
+
+| Usuario | Gestiona | Solo consulta |
+|---|---|---|
+| `operador` / `operador123` | Envíos y facturación | Flota y mantenimiento |
+| `gestor` / `gestor123` | Flota y mantenimiento | Envíos y facturación |
+| `admin` / `admin123` | Todo | — |
 
 Comandos útiles:
 

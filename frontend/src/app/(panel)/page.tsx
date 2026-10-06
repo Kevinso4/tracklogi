@@ -49,6 +49,8 @@ const NOMBRE_SERVICIO: Record<string, string> = {
   tracking: "Tracking Ingestion",
   shipment: "Shipment Service",
   maintenance: "Maintenance Service",
+  notification: "Notification Service",
+  billing: "Billing Service",
 };
 
 export default function Resumen() {

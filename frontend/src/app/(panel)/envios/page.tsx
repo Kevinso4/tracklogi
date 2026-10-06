@@ -147,6 +147,31 @@ function FormularioEnvio({ onCreado }: { onCreado: (e: Envio) => void }) {
   );
 }
 
+interface Correo { id: string; destinatario: string; asunto: string; estado: "enviada" | "simulada" | "fallida"; creada_en: string }
+
+/** Correos que Notification envió al cliente por este envío. */
+function CorreosEnviados({ codigo }: { codigo: string }) {
+  const { datos } = useDatos<Correo[]>(`/api/v1/notificaciones?envio=${codigo}`, 5000);
+  if (!datos?.length) return null;
+  const tono = { enviada: "green", simulada: "gray", fallida: "red" } as const;
+  return (
+    <div>
+      <h4 className="mb-3 text-[13px] font-semibold tracking-wide text-label-2 uppercase">Correos al cliente</h4>
+      <ul className="space-y-1.5">
+        {datos.map((c) => (
+          <li key={c.id} className="flex items-center justify-between gap-3 rounded-[10px] bg-surface-2 px-3 py-2 text-[13px]">
+            <span className="min-w-0">
+              <span className="block truncate font-medium">{c.asunto}</span>
+              <span className="block truncate text-label-3">{c.destinatario} · {fmtFecha(c.creada_en)}</span>
+            </span>
+            <Badge tono={tono[c.estado]}>{c.estado === "enviada" ? "Enviado" : c.estado === "simulada" ? "Simulado" : "Falló"}</Badge>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function DetalleEnvio({ id, onCambio }: { id: string; onCambio: () => void }) {
   const avisar = useAvisos();
   const { datos: e, recargar, error } = useDatos<EnvioDetalle>(`/api/v1/envios/${id}`, 4000);
@@ -232,6 +257,8 @@ function DetalleEnvio({ id, onCambio }: { id: string; onCambio: () => void }) {
           })}
         </ol>
       </div>
+
+      <CorreosEnviados codigo={e.codigo} />
 
       {accion === "incidencia" && (
         <div className="space-y-3 rounded-[14px] bg-orange/8 p-4 ring-1 ring-orange/20">

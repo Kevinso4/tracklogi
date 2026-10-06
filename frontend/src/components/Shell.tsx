@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ETIQUETA_ROL, useSesion } from "@/lib/sesion";
-import { IconCaja, IconCamion, IconLlave, IconMapa, IconResumen, IconSalir } from "./icons";
+import { IconCaja, IconCamion, IconFactura, IconLlave, IconMapa, IconResumen, IconSalir } from "./icons";
 import { cx } from "./ui";
 
 const NAV = [
@@ -13,6 +13,7 @@ const NAV = [
   { href: "/envios", texto: "Envíos", icono: IconCaja },
   { href: "/flota", texto: "Flota", icono: IconCamion },
   { href: "/mantenimiento", texto: "Mantenimiento", icono: IconLlave },
+  { href: "/facturacion", texto: "Facturación", icono: IconFactura },
 ];
 
 export function Logo({ className = "size-7" }: { className?: string }) {

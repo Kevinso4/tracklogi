@@ -70,6 +70,10 @@ def datos_evento(envio: Envio, **extra) -> dict:
         "vehiculo_id": envio.vehiculo_id,
         "placa": envio.vehiculo_placa,
         "es_internacional": envio.es_internacional,
+        # Billing calcula los kilómetros con estas coordenadas.
+        "origen_lat": float(envio.origen_lat), "origen_lon": float(envio.origen_lon),
+        "destino_lat": float(envio.destino_lat), "destino_lon": float(envio.destino_lon),
+        "peso_kg": float(envio.peso_kg),
         **extra,
     }
 

@@ -36,7 +36,7 @@ services:
     healthcheck:
       # -h 127.0.0.1 fuerza TCP: durante el init.sql Postgres solo escucha por socket,
       # así que el servicio no se marca sano hasta que las 4 bases existen.
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U logitrack -d maintenance_db"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U logitrack -d billing_db"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -85,6 +85,8 @@ services:
       TRACKING_URL: http://tracking:8000
       SHIPMENT_URL: http://shipment:8000
       MAINTENANCE_URL: http://maintenance:8000
+      NOTIFICATION_URL: http://notification:8000
+      BILLING_URL: http://billing:8000
 
   fleet:
     <<: *servicio
@@ -134,6 +136,38 @@ services:
       <<: *env-comun
       SERVICE_NAME: maintenance
       DATABASE_URL: postgresql+psycopg://logitrack:logitrack@postgres:5432/maintenance_db
+
+  notification:
+    <<: *servicio
+    build:
+      context: ./services
+      dockerfile: Dockerfile
+      args:
+        SERVICE: notification
+    environment:
+      <<: *env-comun
+      SERVICE_NAME: notification
+      DATABASE_URL: postgresql+psycopg://logitrack:logitrack@postgres:5432/notification_db
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+
+  billing:
+    <<: *servicio
+    build:
+      context: ./services
+      dockerfile: Dockerfile
+      args:
+        SERVICE: billing
+    environment:
+      <<: *env-comun
+      SERVICE_NAME: billing
+      DATABASE_URL: postgresql+psycopg://logitrack:logitrack@postgres:5432/billing_db
+
+  # Buzón de correo de prueba: muestra los correos de Notification en http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
 
   simulator:
     build:

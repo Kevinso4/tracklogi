@@ -93,6 +93,12 @@ export function describirEvento(tipo: string, d: Record<string, unknown>): { tit
       return { titulo: "Mantenimiento programado", detalle: `${s("tipo")} · ${s("fecha_prevista")}`, tono: "teal" };
     case "maintenance.completed":
       return { titulo: "Mantenimiento completado", detalle: s("descripcion"), tono: "green" };
+    case "notification.sent":
+      return { titulo: `Correo ${s("estado") === "simulada" ? "simulado" : "enviado"}`, detalle: `${s("destinatario")} · ${s("asunto")}`, tono: "teal" };
+    case "notification.failed":
+      return { titulo: "Correo no enviado", detalle: `${s("destinatario")} · ${s("asunto")}`, tono: "red" };
+    case "invoice.issued":
+      return { titulo: `Factura N.º ${s("numero")} emitida`, detalle: `${s("cliente")} · ${s("envios")} envíos`, tono: "indigo" };
     default:
       return { titulo: tipo, detalle: "", tono: "gray" };
   }

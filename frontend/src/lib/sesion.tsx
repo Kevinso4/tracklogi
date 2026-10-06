@@ -53,10 +53,11 @@ export function useSesion() {
 }
 
 /** Quién gestiona cada área. Refleja los requiere_rol del backend; el resto de roles solo consulta. */
-const GESTIONA: Record<"envios" | "flota" | "mantenimiento", string[]> = {
+const GESTIONA: Record<"envios" | "flota" | "mantenimiento" | "facturacion", string[]> = {
   envios: ["admin", "operador"],
   flota: ["admin", "gestor_flota"],
   mantenimiento: ["admin", "gestor_flota"],
+  facturacion: ["admin", "operador"],
 };
 
 export function usePuede(area: keyof typeof GESTIONA) {
