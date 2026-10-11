@@ -66,8 +66,21 @@ export interface Envio {
   volumen_m3: number;
   vehiculo_id: string | null;
   vehiculo_placa: string | null;
+  eta: string | null;
+  distancia_km: number | null;
   creado_en: string;
   actualizado_en: string;
+}
+
+/** Ruta por carretera calculada por Routing. `geometria` son pares [lon, lat]. */
+export interface Ruta {
+  envio_id: string;
+  codigo: string;
+  geometria: [number, number][];
+  distancia_km: number;
+  duracion_min: number;
+  eta: string;
+  proveedor: "osrm" | "estimada";
 }
 
 export interface EnvioDetalle extends Envio {

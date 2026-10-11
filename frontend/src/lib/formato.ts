@@ -93,6 +93,10 @@ export function describirEvento(tipo: string, d: Record<string, unknown>): { tit
       return { titulo: "Mantenimiento programado", detalle: `${s("tipo")} · ${s("fecha_prevista")}`, tono: "teal" };
     case "maintenance.completed":
       return { titulo: "Mantenimiento completado", detalle: s("descripcion"), tono: "green" };
+    case "route.assigned":
+      return { titulo: `Ruta de ${s("codigo")} calculada`, detalle: `${s("origen")} → ${s("destino")} · ${s("distancia_km")} km${d.eta_estimado ? " (estimada)" : ""}`, tono: "teal" };
+    case "route.recalculated":
+      return { titulo: `Ruta de ${s("codigo")} recalculada`, detalle: `${s("distancia_km")} km · vehículo ${s("placa")}`, tono: "teal" };
     case "notification.sent":
       return { titulo: `Correo ${s("estado") === "simulada" ? "simulado" : "enviado"}`, detalle: `${s("destinatario")} · ${s("asunto")}`, tono: "teal" };
     case "notification.failed":

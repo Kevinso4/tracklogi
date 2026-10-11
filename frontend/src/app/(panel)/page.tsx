@@ -8,7 +8,7 @@ import { Card, cx, Encabezado, Metrica, TituloSeccion } from "@/components/ui";
 import { ESTADO_ENVIO, ESTADO_VEHICULO, fmtNum } from "@/lib/formato";
 import { useDatos, useEventosEnVivo } from "@/lib/hooks";
 import { useSesion } from "@/lib/sesion";
-import type { Envio, EstadoEnvio, EstadoServicio, EstadoVehiculo, Posicion, Vehiculo } from "@/lib/types";
+import type { Envio, EstadoEnvio, EstadoServicio, EstadoVehiculo, Posicion, Ruta, Vehiculo } from "@/lib/types";
 
 interface ResumenFlota { total: number; por_estado: Record<EstadoVehiculo, number> }
 interface ResumenEnvios { total: number; por_estado: Record<EstadoEnvio, number>; en_riesgo_sla: number; cumplimiento_sla_pct: number | null }
@@ -23,7 +23,7 @@ function Barra<T extends string>({ valores, config }: { valores: Record<T, numbe
     <div>
       <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-fill">
         {claves.map((k) =>
-          valores[k] ? <div key={k} className={cx("transition-all duration-700", color[config[k].tono])} style={{ width: `${(valores[k] / total) * 100}%` }} /> : null,
+          valores[k] ? <div key={k} className={cx("animate-crecer transition-all duration-700", color[config[k].tono])} style={{ width: `${(valores[k] / total) * 100}%` }} /> : null,
         )}
       </div>
       <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2.5">
@@ -51,6 +51,7 @@ const NOMBRE_SERVICIO: Record<string, string> = {
   maintenance: "Maintenance Service",
   notification: "Notification Service",
   billing: "Billing Service",
+  routing: "Routing Service",
 };
 
 export default function Resumen() {
@@ -62,6 +63,7 @@ export default function Resumen() {
   const vehiculos = useDatos<Vehiculo[]>("/api/v1/vehiculos", 5000);
   const posiciones = useDatos<Posicion[]>("/api/v1/telemetria/ultimas", 5000);
   const enTransito = useDatos<Envio[]>("/api/v1/envios?estado=en_transito", 5000);
+  const rutas = useDatos<Ruta[]>("/api/v1/rutas", 8000);
   const servicios = useDatos<EstadoServicio[]>("/api/v1/estado/servicios", 8000);
   const { eventos, conectado } = useEventosEnVivo(40, () => {
     flota.recargar();
@@ -114,7 +116,8 @@ export default function Resumen() {
           etiqueta="Telemetría GPS"
           icono={<IconRayo className="size-4" />}
           tono="indigo"
-          valor={gps.datos ? fmtNum(gps.datos.lecturas_por_segundo) : "—"}
+          valor={gps.datos ? gps.datos.lecturas_por_segundo : "—"}
+          formato={fmtNum}
           detalle={gps.datos ? `lecturas/s · ${gps.datos.vehiculos_reportando} vehículos reportando` : " "}
         />
       </section>
@@ -125,6 +128,7 @@ export default function Resumen() {
             vehiculos={vehiculos.datos ?? []}
             posiciones={posiciones.datos ?? []}
             envios={enTransito.datos ?? []}
+            rutas={rutas.datos ?? []}
             className="h-[440px] rounded-[20px] ring-0"
           />
           <Link

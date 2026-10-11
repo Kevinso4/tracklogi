@@ -17,6 +17,7 @@ Implementación funcional del **Momento 2** sobre la arquitectura definida en
 | **Maintenance Service** | FastAPI · motor de reglas | `maintenance_db` | `maintenance.alert/scheduled/completed` | `telemetry.aggregated` |
 | **Notification Service** | FastAPI · SMTP | `notification_db` | `notification.sent/failed` | `shipment.*` (asignado, retrasado, entregado…), `maintenance.alert` |
 | **Billing Service** | FastAPI | `billing_db` | `invoice.issued` | `shipment.delivered` |
+| **Routing Service** | FastAPI · OSRM (OpenStreetMap) | `routing_db` | `route.assigned/recalculated` | `shipment.assigned/reassigned/delivered/returned` |
 | **Frontend** | Next.js 15 · TypeScript · Tailwind · MapLibre GL | — | — | vía Gateway (REST + SSE) |
 
 Infraestructura: **PostgreSQL 16 + TimescaleDB**, **RabbitMQ** (exchange topic + DLQ por cola), **Redis**, todo en Docker.
@@ -66,9 +67,12 @@ Usuarios de demostración:
 
 | Usuario | Gestiona | Solo consulta |
 |---|---|---|
-| `operador` / `operador123` | Envíos y facturación | Flota y mantenimiento |
-| `gestor` / `gestor123` | Flota y mantenimiento | Envíos y facturación |
+| `operador` / `operador123` | Envíos y facturación | Flota (camiones disponibles) |
+| `gestor` / `gestor123` | Flota y mantenimiento | — |
 | `admin` / `admin123` | Todo | — |
+
+Mínimo privilegio: cada perfil solo ve en el menú los apartados de su área (Resumen y Seguimiento son
+comunes), y Facturación está bloqueada también en el backend para quien no sea operador o admin.
 
 Comandos útiles:
 
@@ -134,8 +138,10 @@ docker compose down -v                 # detener y borrar las bases de datos
 
 ### Simplificaciones de este entregable (y por qué)
 
-- **Sin Routing Service**: la asignación de vehículo que el documento pone en Routing la hace Shipment
-  consultando a Fleet por REST. La saga se mantiene coreografiada: `vehicle.status_changed` la dispara.
+- **Routing calcula la ruta, Shipment asigna el vehículo**: el documento pone ambas cosas en Routing. Aquí
+  Shipment elige el vehículo consultando a Fleet por REST y Routing calcula la ruta real por carretera (OSRM),
+  la distancia y el ETA. Si el proveedor de mapas no responde, se abre el circuito y se usa una ruta estimada.
+  Routing además reconcilia cada 30 s los envíos en tránsito que hayan quedado sin ruta.
 - **Mapa**: MapLibre GL (fork abierto de Mapbox GL JS, misma API) con teselas de OpenFreeMap, para no
   depender de un token de Mapbox. Con un token basta cambiar `NEXT_PUBLIC_MAP_STYLE`.
 - **Usuarios**: cuentas de demostración en memoria dentro del gateway (no hay servicio de usuarios en el alcance).

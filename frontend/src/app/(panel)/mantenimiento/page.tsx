@@ -173,7 +173,7 @@ export default function Mantenimiento() {
         <Metrica etiqueta="Alertas abiertas" tono="orange" icono={<IconAlerta className="size-4" />} valor={r?.alertas_abiertas ?? "—"} />
         <Metrica etiqueta="Críticas" tono="red" icono={<IconAlerta className="size-4" />} valor={r?.alertas_criticas ?? "—"} detalle="Sacan el vehículo de servicio" />
         <Metrica etiqueta="Servicios en 30 días" tono="teal" icono={<IconLlave className="size-4" />} valor={r?.programas_proximos_30_dias ?? "—"} />
-        <Metrica etiqueta="Costo del mes" tono="indigo" icono={<IconCheck className="size-4" />} valor={r ? fmtCOP(r.costo_mes) : "—"} />
+        <Metrica etiqueta="Costo del mes" tono="indigo" icono={<IconCheck className="size-4" />} valor={r ? r.costo_mes : "—"} formato={fmtCOP} />
       </section>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

@@ -43,13 +43,13 @@ export default function Login() {
     <div className="relative grid min-h-dvh place-items-center overflow-hidden px-4 py-10">
       {/* Fondo con degradado suave */}
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-40 left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(10,132,255,0.22),transparent)] blur-2xl" />
+        <div className="animate-deriva absolute -top-40 left-1/2 h-[520px] w-[820px] rounded-full bg-[radial-gradient(closest-side,rgba(10,132,255,0.22),transparent)] blur-2xl" />
         <div className="absolute right-[-10%] bottom-[-20%] h-[420px] w-[620px] rounded-full bg-[radial-gradient(closest-side,rgba(94,92,230,0.18),transparent)] blur-2xl" />
       </div>
 
       <div className="w-full max-w-[380px] animate-aparecer">
         <div className="mb-8 flex flex-col items-center text-center">
-          <Logo className="size-16 rounded-[18px]" />
+          <Logo className="animate-flotar size-16 rounded-[18px]" />
           <h1 className="font-display mt-5 text-[32px] font-bold tracking-[-0.022em]">LogiTrack</h1>
           <p className="mt-1 text-[15px] text-label-2">Inicia sesión en el panel de operaciones</p>
         </div>

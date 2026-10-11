@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { IconCerrar } from "./icons";
 
 export function cx(...c: (string | false | null | undefined)[]) {
@@ -25,7 +25,7 @@ const PUNTOS: Record<Tono, string> = {
 export function Badge({ tono = "gray", children, punto = false }: { tono?: Tono; children: React.ReactNode; punto?: boolean }) {
   return (
     <span className={cx("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold whitespace-nowrap", TONOS[tono])}>
-      {punto && <span className={cx("size-1.5 rounded-full", PUNTOS[tono])} />}
+      {punto && <span className={cx("size-1.5 rounded-full", PUNTOS[tono], tono === "accent" && "animate-pulso")} />}
       {children}
     </span>
   );
@@ -214,7 +214,7 @@ export function Vacio({ titulo, texto, icono }: { titulo: string; texto?: string
 }
 
 export function Esqueleto({ className }: { className?: string }) {
-  return <div className={cx("animate-pulse rounded-xl bg-fill", className)} />;
+  return <div className={cx("esqueleto rounded-xl", className)} />;
 }
 
 export function ErrorCaja({ mensaje }: { mensaje: string }) {
@@ -261,7 +261,37 @@ export function ProveedorAvisos({ children }: { children: React.ReactNode }) {
 
 export const useAvisos = () => useContext(ContextoAvisos);
 
-export function Metrica({ etiqueta, valor, detalle, tono, icono }: { etiqueta: string; valor: React.ReactNode; detalle?: React.ReactNode; tono?: Tono; icono?: React.ReactNode }) {
+/** Cuenta suavemente desde el valor anterior hasta el nuevo (los cambios en vivo se notan). */
+export function NumeroAnimado({ valor, formato = String }: { valor: number; formato?: (n: number) => string }) {
+  const [mostrado, setMostrado] = useState(valor);
+  const desde = useRef(valor);
+  useEffect(() => {
+    const inicio = desde.current;
+    if (inicio === valor || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      desde.current = valor;
+      setMostrado(valor);
+      return;
+    }
+    const enteros = Number.isInteger(valor) && Number.isInteger(inicio);
+    const t0 = performance.now();
+    let raf = 0;
+    const paso = (t: number) => {
+      const p = Math.min(1, (t - t0) / 700);
+      const actual = inicio + (valor - inicio) * (1 - Math.pow(1 - p, 3)); // ease-out cúbica
+      setMostrado(p === 1 ? valor : enteros ? Math.round(actual) : actual);
+      if (p < 1) raf = requestAnimationFrame(paso);
+      else desde.current = valor;
+    };
+    raf = requestAnimationFrame(paso);
+    return () => {
+      cancelAnimationFrame(raf);
+      desde.current = valor;
+    };
+  }, [valor]);
+  return <>{formato(mostrado)}</>;
+}
+
+export function Metrica({ etiqueta, valor, detalle, tono, icono, formato }: { etiqueta: string; valor: React.ReactNode; detalle?: React.ReactNode; tono?: Tono; icono?: React.ReactNode; formato?: (n: number) => string }) {
   const colores: Partial<Record<Tono, string>> = { green: "text-green", accent: "text-accent", orange: "text-orange", red: "text-red", indigo: "text-indigo", teal: "text-teal" };
   return (
     <Card className="animate-aparecer">
@@ -269,7 +299,9 @@ export function Metrica({ etiqueta, valor, detalle, tono, icono }: { etiqueta: s
         {icono && <span className={cx(tono && colores[tono])}>{icono}</span>}
         {etiqueta}
       </div>
-      <div className="font-display tabular mt-2 text-[32px] leading-none font-semibold tracking-tight">{valor}</div>
+      <div className="font-display tabular mt-2 text-[32px] leading-none font-semibold tracking-tight">
+        {typeof valor === "number" ? <NumeroAnimado valor={valor} formato={formato} /> : valor}
+      </div>
       {detalle && <div className="mt-2 text-[13px] text-label-2">{detalle}</div>}
     </Card>
   );

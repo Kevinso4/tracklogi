@@ -37,6 +37,7 @@ SERVICIOS = {
     "maintenance": os.getenv("MAINTENANCE_URL", "http://maintenance:8000"),
     "notification": os.getenv("NOTIFICATION_URL", "http://notification:8000"),
     "billing": os.getenv("BILLING_URL", "http://billing:8000"),
+    "routing": os.getenv("ROUTING_URL", "http://routing:8000"),
 }
 # Enrutamiento por prefijo: /api/v1/<prefijo>/** → servicio
 PREFIJOS = {
@@ -49,6 +50,7 @@ PREFIJOS = {
     "mantenimiento": "maintenance",
     "notificaciones": "notification",
     "facturacion": "billing",
+    "rutas": "routing",
 }
 LIMITES_POR_MINUTO = {"admin": 600, "operador": 600, "gestor_flota": 600, "conductor": 300, "cliente": 120,
                       "anonimo": 30, "login": 10}

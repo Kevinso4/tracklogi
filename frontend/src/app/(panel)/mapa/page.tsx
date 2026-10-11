@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import { IconCerrar, IconGota, IconTermometro, IconVelocidad } from "@/components/icons";
 import MapaFlota from "@/components/MapaFlota";
 import { Badge, Card, cx, Encabezado, Punto } from "@/components/ui";
-import { ESTADO_VEHICULO, fmtNum, hace } from "@/lib/formato";
+import { ESTADO_VEHICULO, fmtFecha, fmtNum, hace } from "@/lib/formato";
 import { useDatos } from "@/lib/hooks";
-import type { Envio, Posicion, Vehiculo } from "@/lib/types";
+import type { Envio, Posicion, Ruta, Vehiculo } from "@/lib/types";
 
 function Indicador({ icono, etiqueta, valor, unidad, alerta }: { icono: React.ReactNode; etiqueta: string; valor: string; unidad: string; alerta?: boolean }) {
   return (
@@ -28,6 +28,7 @@ export default function Seguimiento() {
   const vehiculos = useDatos<Vehiculo[]>("/api/v1/vehiculos", 5000);
   const posiciones = useDatos<Posicion[]>("/api/v1/telemetria/ultimas", 3000);
   const envios = useDatos<Envio[]>("/api/v1/envios?estado=en_transito", 5000);
+  const rutas = useDatos<Ruta[]>("/api/v1/rutas", 8000);
   const desde = useMemo(() => new Date(Date.now() - 30 * 60_000).toISOString(), [sel]); // eslint-disable-line react-hooks/exhaustive-deps
   const recorrido = useDatos<Posicion[]>(sel ? `/api/v1/telemetria/${sel}/recorrido?desde=${encodeURIComponent(desde)}` : null, 5000);
 
@@ -74,6 +75,7 @@ export default function Seguimiento() {
             vehiculos={vehiculos.datos ?? []}
             posiciones={posiciones.datos ?? []}
             envios={envios.datos ?? []}
+            rutas={rutas.datos ?? []}
             recorrido={recorrido.datos ?? []}
             seleccionado={sel}
             onSeleccionar={setSel}
@@ -96,6 +98,7 @@ export default function Seguimiento() {
               {envio && (
                 <p className="mt-2 rounded-[10px] bg-accent/10 px-3 py-2 text-[13px] text-accent">
                   Envío <span className="font-mono font-semibold">{envio.codigo}</span> · {envio.origen} → {envio.destino}
+                  {envio.eta && <span className="block text-[12px]">{fmtNum(envio.distancia_km)} km · llega {fmtFecha(envio.eta)}</span>}
                 </p>
               )}
               {p ? (

@@ -217,11 +217,13 @@ function DetalleEnvio({ id, onCambio }: { id: string; onCambio: () => void }) {
         </Badge>
       </div>
 
-      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[14px] bg-hairline text-[13px] sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[14px] bg-hairline text-[13px] sm:grid-cols-3">
         {[
           ["Vehículo", e.vehiculo_placa ?? "Sin asignar"],
           ["Carga", `${fmtNum(e.peso_kg)} kg · ${fmtNum(e.volumen_m3)} m³`],
-          ["SLA", fmtFecha(e.fecha_limite_sla)],
+          ["Ruta por carretera", e.distancia_km != null ? `${fmtNum(e.distancia_km)} km` : "—"],
+          ["Llegada estimada", e.eta ? fmtFecha(e.eta) : "—"],
+          ["Fecha límite (SLA)", fmtFecha(e.fecha_limite_sla)],
           ["Creado", hace(e.creado_en)],
         ].map(([k, v]) => (
           <div key={k} className="bg-surface-2 p-3">
@@ -230,6 +232,10 @@ function DetalleEnvio({ id, onCambio }: { id: string; onCambio: () => void }) {
           </div>
         ))}
       </dl>
+
+      {activo && e.eta && new Date(e.eta) > new Date(e.fecha_limite_sla) && (
+        <Badge tono="orange">La llegada estimada supera la fecha límite del SLA</Badge>
+      )}
 
       {(e.requiere_refrigeracion || e.es_hazmat || e.es_internacional) && (
         <div className="flex flex-wrap gap-2">
@@ -379,11 +385,11 @@ export default function Envios() {
           <Vacio icono={<IconCaja className="size-10" />} titulo="No hay envíos" texto="Crea el primero con «Nuevo envío»." />
         ) : (
           <ul className="divide-y divide-hairline">
-            {datos.map((e) => {
+            {datos.map((e, i) => {
               const est = ESTADO_ENVIO[e.estado];
               const riesgo = !["entregado", "devuelto"].includes(e.estado) && new Date(e.fecha_limite_sla).getTime() - Date.now() < 2 * 3600_000;
               return (
-                <li key={e.id}>
+                <li key={e.id} style={{ "--i": i } as React.CSSProperties} className="animate-fila">
                   <button onClick={() => setDetalle(e.id)} className="grid w-full grid-cols-[1fr_auto] items-center gap-4 px-5 py-3.5 text-left transition hover:bg-fill/60 sm:grid-cols-[110px_1fr_110px_170px_auto]">
                     <span className="font-mono text-[13px] font-medium">{e.codigo}</span>
                     <span className="min-w-0">

@@ -13,18 +13,18 @@ import secrets
 import string
 import threading
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Annotated
 
 from fastapi import BackgroundTasks, Depends, Header, Query
 from fastapi.responses import JSONResponse
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from common.app import crear_app
 from common.cliente_http import ClienteServicio
-from common.db import SessionLocal, ahora, get_db
+from common.db import SessionLocal, ahora, engine, get_db
 from common.errores import error
 from common.outbox import idempotente, registrar_evento
 from common.seguridad import requiere_rol
@@ -74,6 +74,7 @@ def datos_evento(envio: Envio, **extra) -> dict:
         "origen_lat": float(envio.origen_lat), "origen_lon": float(envio.origen_lon),
         "destino_lat": float(envio.destino_lat), "destino_lon": float(envio.destino_lon),
         "peso_kg": float(envio.peso_kg),
+        "distancia_km": float(envio.distancia_km) if envio.distancia_km is not None else None,
         **extra,
     }
 
@@ -121,6 +122,7 @@ def asignar_envio(envio_id: uuid.UUID) -> None:
             log.info("Envío %s asignado a %s", envio.codigo, v["placa"], extra={"shipment_id": str(envio.id)})
         elif envio.estado == EstadoEnvio.pendiente:
             envio.estado = EstadoEnvio.retrasado
+            envio.eta = None  # sin vehículo no hay hora de llegada
             registrar(db, envio, TipoEventoEnvio.retrasado, "No hay vehículos disponibles que cumplan la carga")
             registrar_evento(db, "shipment.delayed", envio.id,
                              datos_evento(envio, motivo="Sin vehículos disponibles"))
@@ -188,6 +190,7 @@ def al_cambio_estado_vehiculo(db: Session, evento: dict) -> None:
                 envio.vehiculo_id = None
                 envio.vehiculo_placa = None
                 envio.estado = EstadoEnvio.retrasado
+                envio.eta = None  # sin vehículo no hay hora de llegada
                 registrar(db, envio, TipoEventoEnvio.retrasado,
                           f"Compensación: sin vehículo alternativo tras salida de {placa_anterior}")
                 registrar_evento(db, "shipment.delayed", envio.id,
@@ -217,10 +220,31 @@ async def reintentar_asignaciones(_bus, parar: asyncio.Event) -> None:
             log.exception("Fallo reintentando asignaciones")
 
 
+@idempotente
+def al_ruta_calculada(db: Session, evento: dict) -> None:
+    """Routing calculó (o recalculó) la ruta: el envío guarda su ETA y la distancia real por carretera."""
+    d = evento["datos"]
+    envio = db.get(Envio, uuid.UUID(d["envio_id"]))
+    if envio:
+        envio.eta = datetime.fromisoformat(d["eta"])
+        envio.distancia_km = d["distancia_km"]
+
+
+def migrar() -> None:
+    # ponytail: migración mínima sin Alembic; create_all no añade columnas a tablas existentes.
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE envios ADD COLUMN IF NOT EXISTS eta TIMESTAMPTZ"))
+        conn.execute(text("ALTER TABLE envios ADD COLUMN IF NOT EXISTS distancia_km NUMERIC(8,1)"))
+
+
 app = crear_app(
     "shipment",
     "LogiTrack · Shipment Service",
-    suscripciones=[("vehicle-status", ["vehicle.status_changed"], al_cambio_estado_vehiculo)],
+    al_iniciar=migrar,
+    suscripciones=[
+        ("vehicle-status", ["vehicle.status_changed"], al_cambio_estado_vehiculo),
+        ("route", ["route.assigned", "route.recalculated"], al_ruta_calculada),
+    ],
     tareas=[reintentar_asignaciones],
 )
 

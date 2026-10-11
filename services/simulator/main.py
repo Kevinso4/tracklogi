@@ -24,6 +24,7 @@ log = logging.getLogger("simulator")
 FLEET = os.getenv("FLEET_URL", "http://fleet:8000")
 TRACKING = os.getenv("TRACKING_URL", "http://tracking:8000")
 SHIPMENT = os.getenv("SHIPMENT_URL", "http://shipment:8000")
+ROUTING = os.getenv("ROUTING_URL", "http://routing:8000")
 INTERVALO = float(os.getenv("INTERVALO_SEGUNDOS", "5"))
 PROB_ANOMALIA = float(os.getenv("PROB_ANOMALIA", "0.004"))
 VELOCIDAD_SIM_KMH = float(os.getenv("VELOCIDAD_SIMULADA_KMH", "900"))  # acelerada para la demo
@@ -59,18 +60,37 @@ class Vehiculo:
         self.temp_motor = 85.0
         self.estado = datos["estado"]
         self.clave: str | None = None
+        self.envio_id: str | None = None
+        self.camino: list[tuple[float, float]] = []
 
-    def mover(self, destino: tuple[float, float] | None, dt: float) -> float:
-        if not destino or self.estado != "en_transito":
+    def mover(self, envio: dict | None, camino: list[tuple[float, float]] | None, dt: float) -> float:
+        """Avanza por los puntos de la ruta que calculo Routing (carretera real), no en linea recta."""
+        if not envio or self.estado != "en_transito":
+            self.envio_id = None
             return 0.0
-        restante = distancia_km(self.pos, destino)
-        if restante < 0.3:
-            return 0.0
-        avance = min(restante, VELOCIDAD_SIM_KMH * dt / 3600)
-        f = avance / restante
-        self.pos = (self.pos[0] + (destino[0] - self.pos[0]) * f, self.pos[1] + (destino[1] - self.pos[1]) * f)
-        self.odometro += avance
-        self.combustible = max(4.0, self.combustible - avance * 0.02)
+        if envio["id"] != self.envio_id:
+            if not camino:
+                return 0.0  # Routing aun no termina de calcular la ruta: el camion espera
+            self.envio_id, self.camino = envio["id"], list(camino)
+            self.pos = self.camino.pop(0)  # carga en el punto de origen de la ruta
+        avance = VELOCIDAD_SIM_KMH * dt / 3600
+        recorrido = 0.0
+        while self.camino and avance > 0:
+            tramo = distancia_km(self.pos, self.camino[0])
+            if tramo <= avance:
+                self.pos = self.camino.pop(0)
+                avance -= tramo
+                recorrido += tramo
+            else:
+                f = avance / tramo
+                sig = self.camino[0]
+                self.pos = (self.pos[0] + (sig[0] - self.pos[0]) * f, self.pos[1] + (sig[1] - self.pos[1]) * f)
+                recorrido += avance
+                avance = 0
+        if recorrido == 0:
+            return 0.0  # llego al destino: espera la prueba de entrega
+        self.odometro += recorrido
+        self.combustible = max(4.0, self.combustible - recorrido * 0.02)
         if self.combustible < 12 and random.random() < 0.05:
             self.combustible = 100.0  # repostaje
         return random.uniform(62, 95)
@@ -111,6 +131,18 @@ def esperar(cliente: httpx.Client, url: str) -> None:
         time.sleep(3)
 
 
+def camino_de(cliente: httpx.Client, envio: dict) -> list[tuple[float, float]] | None:
+    """Puntos (lat, lon) de la ruta del envio. None si Routing aun no la calcula para este vehiculo."""
+    try:
+        r = cliente.get(f"{ROUTING}/api/v1/rutas/{envio['id']}", headers=CABECERAS)
+        if r.status_code == 200 and r.json()["vehiculo_id"] == envio["vehiculo_id"]:
+            return [(lat, lon) for lon, lat in r.json()["geometria"]]
+        return None
+    except httpx.HTTPError:
+        # Routing caido: plan B, tramo directo para que la flota no se quede parada.
+        return [(envio["origen_lat"], envio["origen_lon"]), (envio["destino_lat"], envio["destino_lon"])]
+
+
 def main(activo: Callable[[], bool] = lambda: True) -> None:
     """`activo` permite pausar la simulación (p. ej. dentro de Tracking cuando nadie mira el panel)."""
     cliente = httpx.Client(timeout=5)
@@ -129,7 +161,7 @@ def main(activo: Callable[[], bool] = lambda: True) -> None:
             vehiculos = cliente.get(f"{FLEET}/api/v1/vehiculos", headers=CABECERAS).json()
             envios = cliente.get(f"{SHIPMENT}/api/v1/envios", params={"estado": "en_transito"},
                                  headers=CABECERAS).json()
-            destinos = {e["vehiculo_id"]: (e["destino_lat"], e["destino_lon"]) for e in envios if e["vehiculo_id"]}
+            por_vehiculo = {e["vehiculo_id"]: e for e in envios if e["vehiculo_id"]}
             por_clave: dict[str, list[dict]] = {}
             for datos in vehiculos:
                 v = flota.get(datos["id"])
@@ -141,7 +173,9 @@ def main(activo: Callable[[], bool] = lambda: True) -> None:
                                      json={"vehiculo_id": v.id, "fabricante": "Teltonika FMC130"})
                     r.raise_for_status()
                     v.clave = r.json()["api_key"]
-                velocidad = v.mover(destinos.get(v.id), dt)
+                envio = por_vehiculo.get(v.id)
+                nuevo = envio and envio["id"] != v.envio_id  # solo se consulta la ruta al empezar un viaje
+                velocidad = v.mover(envio, camino_de(cliente, envio) if nuevo else None, dt)
                 por_clave.setdefault(v.clave, []).append(v.lectura(velocidad))
             # Cada dispositivo envía con su propia clave (un lote por vehículo).
             for clave, lecturas in por_clave.items():

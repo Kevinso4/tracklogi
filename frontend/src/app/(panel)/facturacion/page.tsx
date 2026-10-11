@@ -71,11 +71,11 @@ export default function Facturacion() {
       </Encabezado>
 
       <section className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Metrica etiqueta="Ingresos" tono="indigo" valor={r ? fmtCOP(r.ingresos) : "—"} detalle={r ? `${r.envios} envíos entregados` : " "} />
-        <Metrica etiqueta="Costo operativo" tono="orange" valor={r ? fmtCOP(r.costos) : "—"} detalle="Combustible, peajes y conductor" />
-        <Metrica etiqueta="Margen" tono={r && r.margen < 0 ? "red" : "green"} valor={r ? fmtCOP(r.margen) : "—"}
+        <Metrica etiqueta="Ingresos" tono="indigo" valor={r ? r.ingresos : "—"} formato={fmtCOP} detalle={r ? `${r.envios} envíos entregados` : " "} />
+        <Metrica etiqueta="Costo operativo" tono="orange" valor={r ? r.costos : "—"} formato={fmtCOP} detalle="Combustible, peajes y conductor" />
+        <Metrica etiqueta="Margen" tono={r && r.margen < 0 ? "red" : "green"} valor={r ? r.margen : "—"} formato={fmtCOP}
           detalle={r && r.ingresos ? `${fmtNum((r.margen / r.ingresos) * 100)} % de los ingresos` : " "} />
-        <Metrica etiqueta="Costo por km" tono="teal" valor={r?.costo_por_km != null ? fmtCOP(r.costo_por_km) : "—"} detalle="Promedio de la flota" />
+        <Metrica etiqueta="Costo por km" tono="teal" valor={r?.costo_por_km != null ? r.costo_por_km : "—"} formato={fmtCOP} detalle="Promedio de la flota" />
       </section>
 
       <div className="mb-4">
@@ -95,10 +95,10 @@ export default function Facturacion() {
         {vista === "costos" &&
           (costos.datos?.length ? (
             <ul className="divide-y divide-hairline">
-              {costos.datos.map((c) => {
+              {costos.datos.map((c, i) => {
                 const operativo = c.costo_combustible + c.costo_peajes + c.costo_conductor;
                 return (
-                  <li key={c.envio_id} className="flex flex-wrap items-center gap-4 px-5 py-3.5">
+                  <li key={c.envio_id} style={{ "--i": i } as React.CSSProperties} className="animate-fila flex flex-wrap items-center gap-4 px-5 py-3.5">
                     <span className="w-[90px] font-mono text-[13px] font-medium">{c.codigo}</span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[15px] font-medium">{c.ruta}</p>

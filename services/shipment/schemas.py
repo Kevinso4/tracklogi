@@ -76,6 +76,8 @@ class EnvioOut(BaseModel):
     volumen_m3: float
     vehiculo_id: uuid.UUID | None
     vehiculo_placa: str | None
+    eta: datetime | None = None
+    distancia_km: float | None = None
     creado_en: datetime
     actualizado_en: datetime
 

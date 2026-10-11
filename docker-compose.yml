@@ -36,7 +36,7 @@ services:
     healthcheck:
       # -h 127.0.0.1 fuerza TCP: durante el init.sql Postgres solo escucha por socket,
       # así que el servicio no se marca sano hasta que las 4 bases existen.
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U logitrack -d billing_db"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U logitrack -d routing_db"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -87,6 +87,7 @@ services:
       MAINTENANCE_URL: http://maintenance:8000
       NOTIFICATION_URL: http://notification:8000
       BILLING_URL: http://billing:8000
+      ROUTING_URL: http://routing:8000
 
   fleet:
     <<: *servicio
@@ -163,6 +164,19 @@ services:
       SERVICE_NAME: billing
       DATABASE_URL: postgresql+psycopg://logitrack:logitrack@postgres:5432/billing_db
 
+  routing:
+    <<: *servicio
+    build:
+      context: ./services
+      dockerfile: Dockerfile
+      args:
+        SERVICE: routing
+    environment:
+      <<: *env-comun
+      SERVICE_NAME: routing
+      DATABASE_URL: postgresql+psycopg://logitrack:logitrack@postgres:5432/routing_db
+      SHIPMENT_URL: http://shipment:8000
+
   # Buzón de correo de prueba: muestra los correos de Notification en http://localhost:8025
   mailpit:
     image: axllent/mailpit:latest
@@ -186,6 +200,7 @@ services:
       FLEET_URL: http://fleet:8000
       TRACKING_URL: http://tracking:8000
       SHIPMENT_URL: http://shipment:8000
+      ROUTING_URL: http://routing:8000
       INTERVALO_SEGUNDOS: "5"
       PROB_ANOMALIA: "0.004"
 

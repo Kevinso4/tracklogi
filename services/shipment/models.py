@@ -72,6 +72,9 @@ class Envio(Base):
     vehiculo_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True, index=True)  # externo (Fleet)
     vehiculo_placa: Mapped[str | None] = mapped_column(String(10), nullable=True)
     idempotency_key: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
+    # Los calcula Routing y llegan con route.assigned / route.recalculated.
+    eta: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    distancia_km: Mapped[float | None] = mapped_column(Numeric(8, 1), nullable=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=ahora)
     actualizado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=ahora, onupdate=ahora)
 

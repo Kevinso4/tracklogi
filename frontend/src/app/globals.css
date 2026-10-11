@@ -129,8 +129,48 @@ body {
 .animate-fade { animation: fade-in 0.25s ease both; }
 .animate-pulso { animation: pulso 2s infinite; }
 
+/* Entrada escalonada de filas y tarjetas: style={{ "--i": indice }} */
+.animate-fila { animation: aparecer 0.5s var(--ease-apple) both; animation-delay: calc(min(var(--i, 0), 12) * 35ms); }
+
+/* Barras que crecen desde la izquierda al aparecer */
+@keyframes crecer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.animate-crecer { transform-origin: left; animation: crecer 0.9s var(--ease-apple) both; }
+
+/* Esqueleto con brillo que recorre la tarjeta */
+@keyframes brillo { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.esqueleto {
+  background: linear-gradient(90deg, var(--fill) 25%, var(--fill-strong) 50%, var(--fill) 75%);
+  background-size: 200% 100%;
+  animation: brillo 1.6s linear infinite;
+}
+
+/* Fondo del inicio de sesión que respira lentamente */
+@keyframes deriva { 0%, 100% { transform: translate(-50%, 0) scale(1); } 50% { transform: translate(-46%, 18px) scale(1.06); } }
+@keyframes flotar { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.animate-deriva { animation: deriva 14s ease-in-out infinite; }
+.animate-flotar { animation: flotar 5s ease-in-out infinite; }
+
+/* Camión en tránsito: halo que late alrededor del punto */
+@keyframes halo { 0% { transform: scale(1); opacity: 0.55; } 100% { transform: scale(2.6); opacity: 0; } }
+.marcador.transito .punto { position: relative; }
+.marcador.transito .punto::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: halo 1.8s ease-out infinite;
+  z-index: -1;
+}
+
+/* Detalles de interacción */
+.nav-item svg { transition: transform 0.3s var(--ease-apple); }
+.nav-item:hover svg { transform: scale(1.12) rotate(-4deg); }
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-aparecer, .animate-sheet, .animate-fade, .animate-pulso { animation: none; }
+  .animate-aparecer, .animate-sheet, .animate-fade, .animate-pulso, .animate-fila, .animate-crecer,
+  .animate-deriva, .animate-flotar, .esqueleto, .marcador.transito .punto::after { animation: none; }
+  .nav-item:hover svg { transform: none; }
 }
 
 /* Marcadores del mapa */

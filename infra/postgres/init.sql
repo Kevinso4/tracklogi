@@ -5,6 +5,7 @@ CREATE DATABASE shipment_db;
 CREATE DATABASE maintenance_db;
 CREATE DATABASE notification_db;
 CREATE DATABASE billing_db;
+CREATE DATABASE routing_db;
 
 -- tracking_db usa la extensión TimescaleDB para la hypertable de posiciones.
 \c tracking_db

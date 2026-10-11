@@ -94,7 +94,8 @@ def al_entregado(db: Session, evento: dict) -> None:
     d = evento["datos"]
     if db.get(CostoEnvio, uuid.UUID(d["envio_id"])):
         return
-    km = round(distancia_km(d["origen_lat"], d["origen_lon"], d["destino_lat"], d["destino_lon"]), 1)
+    # Kilometros reales por carretera (Routing); si el envio no tuvo ruta, estimacion en linea recta.
+    km = d.get("distancia_km") or round(distancia_km(d["origen_lat"], d["origen_lon"], d["destino_lat"], d["destino_lon"]), 1)
     tarifa = db.get(TarifaCliente, d["cliente"])
     modelo, valor = (tarifa.modelo.value, float(tarifa.valor)) if tarifa else TARIFA_POR_DEFECTO
     db.add(CostoEnvio(envio_id=uuid.UUID(d["envio_id"]), codigo=d["codigo"], cliente=d["cliente"],
@@ -111,6 +112,10 @@ app = crear_app(
 
 
 # ---------------------------------------------------------------- API
+
+
+# Informacion financiera: ni la consulta esta abierta a otros roles (minimo privilegio).
+LECTURA = requiere_rol("operador")
 
 
 class CostoOut(BaseModel):
@@ -146,7 +151,7 @@ class TarifaIn(BaseModel):
 
 
 @app.get("/api/v1/facturacion/costos", response_model=list[CostoOut], tags=["facturación"])
-def costos(db: Db, cliente: str | None = None, limite: int = Query(default=200, ge=1, le=1000)):
+def costos(db: Db, cliente: str | None = None, limite: int = Query(default=200, ge=1, le=1000), _=LECTURA):
     consulta = select(CostoEnvio).order_by(CostoEnvio.entregado_en.desc()).limit(limite)
     if cliente:
         consulta = consulta.where(CostoEnvio.cliente == cliente)
@@ -154,12 +159,12 @@ def costos(db: Db, cliente: str | None = None, limite: int = Query(default=200, 
 
 
 @app.get("/api/v1/facturacion/facturas", response_model=list[FacturaOut], tags=["facturación"])
-def facturas(db: Db):
+def facturas(db: Db, _=LECTURA):
     return list(db.scalars(select(Factura).order_by(Factura.numero.desc())))
 
 
 @app.get("/api/v1/facturacion/resumen", tags=["facturación"])
-def resumen(db: Db):
+def resumen(db: Db, _=LECTURA):
     costo = CostoEnvio.costo_combustible + CostoEnvio.costo_peajes + CostoEnvio.costo_conductor
     fila = db.execute(select(func.count(), func.coalesce(func.sum(CostoEnvio.precio_cliente), 0),
                              func.coalesce(func.sum(costo), 0), func.coalesce(func.sum(CostoEnvio.distancia_km), 0))).one()
@@ -212,7 +217,7 @@ def cierre_mensual(db: Db, _=requiere_rol("operador")):
 
 
 @app.get("/api/v1/facturacion/tarifas", tags=["facturación"])
-def tarifas(db: Db):
+def tarifas(db: Db, _=LECTURA):
     defecto = {"modelo": TARIFA_POR_DEFECTO[0], "valor": TARIFA_POR_DEFECTO[1]}
     return {"por_defecto": defecto,
             "clientes": [{"cliente": t.cliente, "modelo": t.modelo.value, "valor": float(t.valor)}

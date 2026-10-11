@@ -126,6 +126,8 @@ def al_envio_asignado(db: Session, evento: dict) -> None:
 def al_envio_entregado(db: Session, evento: dict) -> None:
     v = _vehiculo_de(db, evento["datos"])
     if v and v.estado == EstadoVehiculo.en_transito:
+        if evento["tipo"] == "shipment.delivered" and evento["datos"].get("destino"):
+            v.zona = evento["datos"]["destino"][:60]  # el camión queda disponible donde entregó
         cambiar_estado(db, v, EstadoVehiculo.activo, "Envío finalizado, vehículo liberado")
 
 

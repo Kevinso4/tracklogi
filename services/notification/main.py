@@ -1,6 +1,6 @@
 """Notification Service — avisa al cliente y al gestor de flota por correo.
 
-Consume:  shipment.assigned, shipment.reassigned, shipment.incident, shipment.delayed,
+Consume:  route.assigned, shipment.reassigned, shipment.incident, shipment.delayed,
           shipment.delivered, shipment.returned, maintenance.alert
 Publica:  notification.sent, notification.failed   (vía outbox)
 Si SMTP_HOST no está configurado (p. ej. en Render), la notificación se registra como «simulada».
@@ -10,7 +10,7 @@ import os
 import smtplib
 import uuid
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from typing import Annotated
 
@@ -30,11 +30,14 @@ SMTP_HOST = os.getenv("SMTP_HOST")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "1025"))
 REMITENTE = os.getenv("NOTIFICACIONES_REMITENTE", "LogiTrack <notificaciones@logitrack.co>")
 CORREO_GESTOR = os.getenv("CORREO_GESTOR", "gestor.flota@logitrack.co")
+HORA_COLOMBIA = timezone(timedelta(hours=-5))
 
 # (asunto, cuerpo). Los campos vienen de los datos del evento.
 PLANTILLAS = {
-    "shipment.assigned": ("Tu envío {codigo} va en camino",
-                          "Hola {cliente}:\n\nTu envío {codigo} salió de {origen} hacia {destino} en el vehículo {placa}."),
+    # Se avisa con route.assigned (no con shipment.assigned) para poder incluir la hora estimada de llegada.
+    "route.assigned": ("Tu envío {codigo} va en camino",
+                       "Hola {cliente}:\n\nTu envío {codigo} salió de {origen} hacia {destino} en el vehículo {placa}.\n"
+                       "Son {distancia_km} km por carretera y la llegada estimada es el {eta_texto}."),
     "shipment.reassigned": ("Cambiamos el vehículo de tu envío {codigo}",
                             "Hola {cliente}:\n\nPara no retrasar tu envío {codigo}, ahora viaja en el vehículo {placa}."),
     "shipment.incident": ("Novedad en tu envío {codigo}",
@@ -84,6 +87,8 @@ def enviar_correo(destinatario: str, asunto: str, cuerpo: str) -> tuple[str, str
 
 @idempotente
 def al_evento(db: Session, evento: dict) -> None:
+    if evento["tipo"] not in PLANTILLAS:
+        return  # la cola puede conservar enlaces de versiones anteriores
     d = evento["datos"]
     destinatario = CORREO_GESTOR if evento["tipo"] == "maintenance.alert" else d.get("cliente_email")
     if not destinatario:
@@ -91,6 +96,8 @@ def al_evento(db: Session, evento: dict) -> None:
     if evento["tipo"] == "maintenance.alert" and not d.get("critica"):
         return  # al gestor solo le llegan las alertas críticas
     campos = defaultdict(str, {k: v for k, v in d.items() if v is not None})
+    if d.get("eta"):  # hora de Colombia (UTC-5, sin horario de verano)
+        campos["eta_texto"] = datetime.fromisoformat(d["eta"]).astimezone(HORA_COLOMBIA).strftime("%d/%m a las %H:%M")
     asunto, cuerpo = (t.format_map(campos) for t in PLANTILLAS[evento["tipo"]])
     estado, error = enviar_correo(destinatario, asunto, cuerpo)
     n = Notificacion(event_id=uuid.UUID(evento["event_id"]), tipo_evento=evento["tipo"], envio_codigo=d.get("codigo"),
