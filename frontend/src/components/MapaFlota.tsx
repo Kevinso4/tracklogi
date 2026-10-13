@@ -189,7 +189,8 @@ export default function MapaFlota({ vehiculos, posiciones, envios = [], rutas = 
     const m = mapa.current;
     if (!m || !seleccionado) return;
     const p = posiciones.find((x) => x.vehiculo_id === seleccionado);
-    if (p) m.easeTo({ center: [p.lon, p.lat], zoom: Math.max(m.getZoom(), 8), duration: 800 });
+    // El desplazamiento deja el camión a la vista, a la izquierda de la tarjeta de información.
+    if (p) m.easeTo({ center: [p.lon, p.lat], zoom: Math.max(m.getZoom(), 8), duration: 800, offset: [-170, -90] });
     // Solo al cambiar la selección, no con cada nueva posición.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seleccionado]);
