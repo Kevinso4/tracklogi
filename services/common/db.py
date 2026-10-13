@@ -9,9 +9,20 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 log = logging.getLogger("db")
 
-DATABASE_URL = os.environ["DATABASE_URL"]
+# Render entrega la URL como postgresql://...; SQLAlchemy necesita indicar el driver psycopg 3.
+DATABASE_URL = os.environ["DATABASE_URL"].replace("postgres://", "postgresql://", 1).replace(
+    "postgresql://", "postgresql+psycopg://", 1)
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_size=5, max_overflow=10)
+# Cuando varios servicios comparten una instancia de Postgres (plan gratuito), cada uno trabaja en su
+# propio esquema: sigue sin poder ver las tablas de los demás. En local cada servicio tiene su base.
+DB_SCHEMA = os.getenv("DB_SCHEMA", "")
+if DB_SCHEMA and not DB_SCHEMA.isidentifier():
+    raise ValueError("DB_SCHEMA debe ser un identificador simple")
+
+engine = create_engine(
+    DATABASE_URL, pool_pre_ping=True, pool_size=5, max_overflow=10,
+    connect_args={"options": f"-csearch_path={DB_SCHEMA}"} if DB_SCHEMA else {},
+)
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 
@@ -34,8 +45,10 @@ def get_db():
 def esperar_db(intentos: int = 60) -> None:
     for intento in range(1, intentos + 1):
         try:
-            with engine.connect() as conn:
+            with engine.begin() as conn:
                 conn.execute(text("SELECT 1"))
+                if DB_SCHEMA:
+                    conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{DB_SCHEMA}"'))
             return
         except Exception as exc:
             log.warning("Base de datos no disponible (intento %s/%s): %s", intento, intentos, exc)
