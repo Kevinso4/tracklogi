@@ -29,6 +29,13 @@ import { usePuede } from "@/lib/sesion";
 import type { Alerta, Conductor, EstadoVehiculo, Posicion, Vehiculo } from "@/lib/types";
 
 type Vista = "vehiculos" | "conductores";
+
+const CHIP_ESTADO: Record<EstadoVehiculo, string> = {
+  activo: "bg-green/12 text-green",
+  en_transito: "bg-accent/12 text-accent",
+  en_mantenimiento: "bg-orange/14 text-orange",
+  fuera_de_servicio: "bg-red/12 text-red",
+};
 type FiltroEstado = "todos" | EstadoVehiculo;
 
 function FormVehiculo({ onListo }: { onListo: () => void }) {
@@ -322,7 +329,7 @@ export default function Flota() {
                     className="group rounded-[20px] bg-surface p-5 text-left shadow-card ring-1 ring-hairline transition duration-300 hover:-translate-y-0.5 hover:shadow-sheet animate-aparecer"
                   >
                     <div className="flex items-start justify-between">
-                      <div className="grid size-11 place-items-center rounded-[12px] bg-fill text-label-2 transition group-hover:text-accent">
+                      <div className={cx("grid size-11 place-items-center rounded-[12px] transition-transform duration-300 group-hover:scale-110", CHIP_ESTADO[v.estado])}>
                         <IconCamion className="size-6" />
                       </div>
                       <Badge tono={est.tono} punto>{est.texto}</Badge>

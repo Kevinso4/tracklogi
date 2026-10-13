@@ -56,6 +56,9 @@ export const fmtDia = (iso: string) => soloFecha.format(new Date(iso.length === 
 export const fmtNum = (n: number | null | undefined) => (n == null ? "—" : numero.format(n));
 export const fmtCOP = (n: number) => moneda.format(n);
 
+/** plural(1, "envío", "envíos") → "1 envío" */
+export const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+
 export function hace(iso: string): string {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 10) return "ahora";

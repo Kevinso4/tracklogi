@@ -198,3 +198,13 @@ body {
   box-shadow: 0 0 0 1px var(--hairline);
 }
 .maplibregl-ctrl-attrib { font-size: 10px; }
+
+/* Mapa en modo oscuro: se invierte la luminosidad de las teselas conservando los tonos
+   (la ruta sigue azul). Los marcadores son HTML, no parte del lienzo, y no se alteran. */
+@media (prefers-color-scheme: dark) {
+  .maplibregl-canvas { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88) saturate(0.85); }
+  .maplibregl-map .maplibregl-ctrl-group, .maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib { background: var(--surface); color: var(--label-2); }
+  .maplibregl-map .maplibregl-ctrl-attrib a { color: var(--label-2); }
+  .maplibregl-map .maplibregl-ctrl-group button + button { border-top-color: var(--hairline); }
+  .maplibregl-map .maplibregl-ctrl-group button .maplibregl-ctrl-icon, .maplibregl-map .maplibregl-ctrl-attrib-button { filter: invert(1); }
+}

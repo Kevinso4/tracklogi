@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { IconCerrar } from "./icons";
 
 export function cx(...c: (string | false | null | undefined)[]) {
@@ -210,7 +211,8 @@ export function Hoja({
     return () => window.removeEventListener("keydown", tecla);
   }, [abierta, onCerrar]);
   if (!abierta) return null;
-  return (
+  // Se monta en <body>: dentro de un ancestro con transform (la animación de página) `fixed` se descuadra.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label={titulo}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px] animate-fade" onClick={onCerrar} />
       <div className={cx("relative max-h-[92vh] w-full overflow-y-auto rounded-t-[22px] bg-surface shadow-sheet animate-sheet sm:rounded-[22px]", ancho)}>
@@ -222,7 +224,8 @@ export function Hoja({
         </div>
         <div className="p-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -315,14 +318,17 @@ export function NumeroAnimado({ valor, formato = String }: { valor: number; form
 }
 
 export function Metrica({ etiqueta, valor, detalle, tono, icono, formato }: { etiqueta: string; valor: React.ReactNode; detalle?: React.ReactNode; tono?: Tono; icono?: React.ReactNode; formato?: (n: number) => string }) {
-  const colores: Partial<Record<Tono, string>> = { green: "text-green", accent: "text-accent", orange: "text-orange", red: "text-red", indigo: "text-indigo", teal: "text-teal" };
   return (
-    <Card className="animate-aparecer">
-      <div className="flex items-center gap-2 text-[13px] font-medium text-label-2">
-        {icono && <span className={cx(tono && colores[tono])}>{icono}</span>}
+    <Card className="group animate-aparecer transition-shadow duration-300 hover:shadow-sheet">
+      <div className="flex items-center gap-2.5 text-[13px] font-medium text-label-2">
+        {icono && (
+          <span className={cx("grid size-8 shrink-0 place-items-center rounded-[10px] transition-transform duration-300 group-hover:scale-110", TONOS[tono ?? "gray"])}>
+            {icono}
+          </span>
+        )}
         {etiqueta}
       </div>
-      <div className="font-display tabular mt-2 text-[32px] leading-none font-semibold tracking-tight">
+      <div className="font-display tabular mt-3 text-[34px] leading-none font-semibold tracking-[-0.02em]">
         {typeof valor === "number" ? <NumeroAnimado valor={valor} formato={formato} /> : valor}
       </div>
       {detalle && <div className="mt-2 text-[13px] text-label-2">{detalle}</div>}

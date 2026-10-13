@@ -68,6 +68,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <Logo />
           <span className="font-display text-[19px] font-semibold tracking-tight">LogiTrack</span>
         </div>
+        <p className="px-6 pb-1.5 text-[11px] font-semibold tracking-[0.08em] text-label-3 uppercase">Operación</p>
         <nav className="flex-1 space-y-0.5 px-3">
           {menu.map(({ href, texto, icono: Icono }) => {
             const activo = href === "/" ? ruta === "/" : ruta.startsWith(href);

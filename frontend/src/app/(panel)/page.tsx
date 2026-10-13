@@ -4,8 +4,8 @@ import Link from "next/link";
 import { FeedEventos } from "@/components/FeedEventos";
 import { IconAlerta, IconCaja, IconCamion, IconChevron, IconRayo, IconServidor } from "@/components/icons";
 import MapaFlota from "@/components/MapaFlota";
-import { Card, cx, Encabezado, Metrica, TituloSeccion } from "@/components/ui";
-import { ESTADO_ENVIO, ESTADO_VEHICULO, fmtNum } from "@/lib/formato";
+import { Badge, Card, cx, Encabezado, Metrica, TituloSeccion, Vacio } from "@/components/ui";
+import { ESTADO_ENVIO, ESTADO_VEHICULO, fmtFecha, fmtNum, plural } from "@/lib/formato";
 import { useDatos, useEventosEnVivo } from "@/lib/hooks";
 import { useSesion } from "@/lib/sesion";
 import type { Envio, EstadoEnvio, EstadoServicio, EstadoVehiculo, Posicion, Ruta, Vehiculo } from "@/lib/types";
@@ -75,13 +75,19 @@ export default function Resumen() {
   const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
   const pf = flota.datos?.por_estado;
   const pe = envios.datos?.por_estado;
+  const llegadas = [...(enTransito.datos ?? [])].sort((a, b) => (a.eta ?? "9").localeCompare(b.eta ?? "9")).slice(0, 5);
 
   return (
     <>
       <Encabezado
         titulo={`${saludo}, ${usuario?.nombre.split(" ")[0] ?? ""}`}
         subtitulo={new Intl.DateTimeFormat("es-CO", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}
-      />
+      >
+        <span className="flex items-center gap-2 rounded-full bg-surface px-3.5 py-1.5 text-[13px] font-medium shadow-card ring-1 ring-hairline">
+          <span className={cx("size-2 rounded-full", conectado ? "bg-green text-green animate-pulso" : "bg-label-3")} />
+          {conectado ? "En vivo" : "Reconectando…"}
+        </span>
+      </Encabezado>
 
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Metrica
@@ -110,7 +116,7 @@ export default function Resumen() {
           icono={<IconAlerta className="size-4" />}
           tono={mant.datos?.alertas_criticas ? "red" : "orange"}
           valor={mant.datos?.alertas_abiertas ?? "—"}
-          detalle={mant.datos ? `${mant.datos.alertas_criticas} críticas · ${mant.datos.programas_proximos_30_dias} servicios en 30 días` : " "}
+          detalle={mant.datos ? `${plural(mant.datos.alertas_criticas, "crítica", "críticas")} · ${plural(mant.datos.programas_proximos_30_dias, "servicio", "servicios")} en 30 días` : " "}
         />
         <Metrica
           etiqueta="Telemetría GPS"
@@ -143,15 +149,49 @@ export default function Resumen() {
         </Card>
       </section>
 
-      <section className="mt-4 grid gap-4 lg:grid-cols-3">
-        <Card>
-          <TituloSeccion>Flota por estado</TituloSeccion>
-          {pf && <Barra valores={pf} config={ESTADO_VEHICULO} />}
-        </Card>
-        <Card>
-          <TituloSeccion>Envíos por estado</TituloSeccion>
-          {pe && <Barra valores={pe} config={ESTADO_ENVIO} />}
-        </Card>
+      <section className="mt-4 grid items-start gap-4 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
+          <Card>
+            <TituloSeccion>Flota por estado</TituloSeccion>
+            {pf && <Barra valores={pf} config={ESTADO_VEHICULO} />}
+          </Card>
+          <Card>
+            <TituloSeccion>Envíos por estado</TituloSeccion>
+            {pe && <Barra valores={pe} config={ESTADO_ENVIO} />}
+          </Card>
+          <Card className="sm:col-span-2" padding={false}>
+            <div className="px-5 pt-5">
+              <TituloSeccion accion={<span className="text-[12px] text-label-3">Calculado por Routing</span>}>Próximas llegadas</TituloSeccion>
+            </div>
+            {llegadas.length ? (
+              <ul className="divide-y divide-hairline">
+                {llegadas.map((e, i) => {
+                  const tarde = !!e.eta && new Date(e.eta) > new Date(e.fecha_limite_sla);
+                  return (
+                    <li key={e.id} style={{ "--i": i } as React.CSSProperties} className="animate-fila flex items-center gap-4 px-5 py-3">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-accent/12 text-accent">
+                        <IconCamion className="size-[18px]" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[14px] font-medium">{e.origen} → {e.destino}</span>
+                        <span className="block truncate text-[12.5px] text-label-2">
+                          <span className="font-mono">{e.codigo}</span> · {e.vehiculo_placa} · {e.cliente}
+                        </span>
+                      </span>
+                      <span className="hidden text-right text-[12.5px] sm:block">
+                        <span className="block text-label-3">{e.distancia_km != null ? `${fmtNum(e.distancia_km)} km` : "Calculando ruta…"}</span>
+                        <span className="tabular block font-medium">{e.eta ? fmtFecha(e.eta) : "—"}</span>
+                      </span>
+                      <Badge tono={tarde ? "orange" : "green"}>{tarde ? "Fuera de SLA" : "A tiempo"}</Badge>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <Vacio titulo="Sin envíos en camino" texto="Cuando se asigne un envío aparecerá aquí con su hora estimada de llegada." />
+            )}
+          </Card>
+        </div>
         <Card>
           <TituloSeccion accion={<IconServidor className="size-4 text-label-3" />}>Estado de la plataforma</TituloSeccion>
           <ul className="divide-y divide-hairline">

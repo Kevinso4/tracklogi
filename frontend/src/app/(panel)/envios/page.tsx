@@ -408,8 +408,10 @@ export default function Envios() {
                       <span className="font-medium">{e.vehiculo_placa ?? "—"}</span>
                     </span>
                     <span className="hidden text-[13px] sm:block">
-                      <span className="block text-label-3">SLA</span>
-                      <span className={cx("font-medium tabular whitespace-nowrap", riesgo && "text-orange")}>{fmtFecha(e.fecha_limite_sla)}</span>
+                      <span className="block text-label-3">{e.eta && e.estado === "en_transito" ? "Llega" : "Límite (SLA)"}</span>
+                      <span className={cx("font-medium tabular whitespace-nowrap", riesgo && "text-orange")}>
+                        {fmtFecha(e.eta && e.estado === "en_transito" ? e.eta : e.fecha_limite_sla)}
+                      </span>
                     </span>
                     <span className="flex items-center gap-2">
                       <Badge tono={est.tono} punto>{est.texto}</Badge>

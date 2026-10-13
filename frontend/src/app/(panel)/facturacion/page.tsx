@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { IconFactura } from "@/components/icons";
+import { IconCheck, IconFactura, IconRayo, IconVelocidad } from "@/components/icons";
 import { Badge, Boton, Card, Encabezado, ErrorCaja, Metrica, Segmentado, useAvisos, Vacio } from "@/components/ui";
 import { api } from "@/lib/api";
-import { fmtCOP, fmtFecha, fmtNum } from "@/lib/formato";
+import { fmtCOP, fmtFecha, fmtNum, plural } from "@/lib/formato";
 import { useDatos, useEventosEnVivo } from "@/lib/hooks";
 import { usePuede } from "@/lib/sesion";
 
@@ -71,11 +71,11 @@ export default function Facturacion() {
       </Encabezado>
 
       <section className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Metrica etiqueta="Ingresos" tono="indigo" valor={r ? r.ingresos : "—"} formato={fmtCOP} detalle={r ? `${r.envios} envíos entregados` : " "} />
-        <Metrica etiqueta="Costo operativo" tono="orange" valor={r ? r.costos : "—"} formato={fmtCOP} detalle="Combustible, peajes y conductor" />
-        <Metrica etiqueta="Margen" tono={r && r.margen < 0 ? "red" : "green"} valor={r ? r.margen : "—"} formato={fmtCOP}
+        <Metrica etiqueta="Ingresos" tono="indigo" icono={<IconFactura className="size-4" />} valor={r ? r.ingresos : "—"} formato={fmtCOP} detalle={r ? plural(r.envios, "envío entregado", "envíos entregados") : " "} />
+        <Metrica etiqueta="Costo operativo" tono="orange" icono={<IconRayo className="size-4" />} valor={r ? r.costos : "—"} formato={fmtCOP} detalle="Combustible, peajes y conductor" />
+        <Metrica etiqueta="Margen" icono={<IconCheck className="size-4" />} tono={r && r.margen < 0 ? "red" : "green"} valor={r ? r.margen : "—"} formato={fmtCOP}
           detalle={r && r.ingresos ? `${fmtNum((r.margen / r.ingresos) * 100)} % de los ingresos` : " "} />
-        <Metrica etiqueta="Costo por km" tono="teal" valor={r?.costo_por_km != null ? r.costo_por_km : "—"} formato={fmtCOP} detalle="Promedio de la flota" />
+        <Metrica etiqueta="Costo por km" tono="teal" icono={<IconVelocidad className="size-4" />} valor={r?.costo_por_km != null ? r.costo_por_km : "—"} formato={fmtCOP} detalle="Promedio de la flota" />
       </section>
 
       <div className="mb-4">
@@ -127,7 +127,7 @@ export default function Facturacion() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[15px] font-medium">{f.cliente}</p>
                     <p className="text-[13px] text-label-2">
-                      {mes.format(new Date(`${f.periodo}T12:00:00`))} · {f.envios} {f.envios === 1 ? "envío" : "envíos"}
+                      {mes.format(new Date(`${f.periodo}T12:00:00`))} · {plural(f.envios, "envío", "envíos")}
                     </p>
                   </div>
                   <span className="text-[15px] font-semibold tabular">{fmtCOP(f.monto_total)}</span>
