@@ -19,6 +19,7 @@ from common.db import SessionLocal, ahora, get_db
 from common.errores import error
 from common.outbox import idempotente, registrar_evento
 from common.seguridad import requiere_rol
+from common.validacion import CON_LETRA
 
 from .models import (
     Alerta,
@@ -167,7 +168,7 @@ class AlertaOut(BaseModel):
 
 class ProgramaIn(BaseModel):
     vehiculo_id: uuid.UUID
-    tipo: str = Field(min_length=3, max_length=80)
+    tipo: str = Field(min_length=3, max_length=80, pattern=CON_LETRA)
     fecha_prevista: date
     km_previsto: int | None = Field(default=None, ge=0)
     prioridad: int = Field(default=2, ge=1, le=3)
@@ -190,9 +191,9 @@ class ProgramaOut(BaseModel):
 class IntervencionIn(BaseModel):
     vehiculo_id: uuid.UUID
     programa_id: uuid.UUID | None = None
-    descripcion: str = Field(min_length=3, max_length=1000)
+    descripcion: str = Field(min_length=3, max_length=1000, pattern=CON_LETRA)
     costo: float = Field(ge=0, le=1_000_000_000)
-    taller: str = Field(min_length=2, max_length=120)
+    taller: str = Field(min_length=2, max_length=120, pattern=CON_LETRA)
     km_al_servicio: int = Field(ge=0)
 
 
@@ -209,7 +210,7 @@ class IntervencionOut(BaseModel):
 
 
 class ReglaIn(BaseModel):
-    nombre: str = Field(min_length=3, max_length=120)
+    nombre: str = Field(min_length=3, max_length=120, pattern=CON_LETRA)
     metrica: Metrica
     operador: Operador
     umbral: float = 0

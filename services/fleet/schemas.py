@@ -3,20 +3,22 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from common.validacion import ALFANUMERICO, CON_LETRA, NOMBRE, TELEFONO
+
 from .models import EstadoVehiculo, TipoVehiculo
 
 
 class VehiculoIn(BaseModel):
     placa: str = Field(min_length=5, max_length=10, examples=["MTR-123"])
     tipo: TipoVehiculo
-    marca: str = Field(min_length=2, max_length=60)
+    marca: str = Field(min_length=2, max_length=60, pattern=CON_LETRA)
     capacidad_kg: float = Field(gt=0, le=60000)
     capacidad_m3: float = Field(gt=0, le=150)
     anio: int = Field(ge=1990, le=2100)
     vencimiento_seguro: date
     refrigerado: bool = False
     certificado_hazmat: bool = False
-    zona: str = Field(min_length=2, max_length=60)
+    zona: str = Field(min_length=2, max_length=60, pattern=NOMBRE)
 
     @field_validator("placa")
     @classmethod
@@ -57,9 +59,9 @@ class CambioEstadoIn(BaseModel):
 
 
 class ConductorIn(BaseModel):
-    nombre: str = Field(min_length=3, max_length=120)
-    numero_licencia: str = Field(min_length=4, max_length=30)
-    telefono: str | None = Field(default=None, max_length=20)
+    nombre: str = Field(min_length=3, max_length=120, pattern=NOMBRE)
+    numero_licencia: str = Field(min_length=4, max_length=30, pattern=ALFANUMERICO)
+    telefono: str | None = Field(default=None, pattern=TELEFONO)
     certificacion_hazmat: bool = False
     categorias: list[str] = Field(default_factory=lambda: ["C2"])
 

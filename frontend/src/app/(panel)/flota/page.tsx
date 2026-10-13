@@ -16,6 +16,9 @@ import {
   Interruptor,
   Segmentado,
   Select,
+  soloAlfanumerico,
+  soloLetras,
+  soloTelefono,
   useAvisos,
   Vacio,
 } from "@/components/ui";
@@ -59,7 +62,7 @@ function FormVehiculo({ onListo }: { onListo: () => void }) {
   return (
     <form onSubmit={enviar} className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
-        <Campo etiqueta="Placa"><Input value={f.placa} onChange={(e) => set("placa", e.target.value.toUpperCase())} placeholder="MTR-909" required minLength={5} maxLength={10} /></Campo>
+        <Campo etiqueta="Placa"><Input value={f.placa} onChange={(e) => set("placa", soloAlfanumerico(e.target.value.toUpperCase()))} placeholder="MTR-909" required minLength={5} maxLength={10} /></Campo>
         <Campo etiqueta="Tipo">
           <Select value={f.tipo} onChange={(e) => set("tipo", e.target.value)}>
             {Object.entries(TIPO_VEHICULO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -71,8 +74,8 @@ function FormVehiculo({ onListo }: { onListo: () => void }) {
         <Campo etiqueta="Año"><Input type="number" min="1990" max="2100" value={f.anio} onChange={(e) => set("anio", e.target.value)} required /></Campo>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Campo etiqueta="Capacidad (kg)"><Input type="number" min="1" value={f.capacidad_kg} onChange={(e) => set("capacidad_kg", e.target.value)} required /></Campo>
-        <Campo etiqueta="Capacidad (m³)"><Input type="number" min="0.1" step="any" value={f.capacidad_m3} onChange={(e) => set("capacidad_m3", e.target.value)} required /></Campo>
+        <Campo etiqueta="Capacidad (kg)"><Input type="number" min="1" max="60000" value={f.capacidad_kg} onChange={(e) => set("capacidad_kg", e.target.value)} required /></Campo>
+        <Campo etiqueta="Capacidad (m³)"><Input type="number" min="0.1" max="150" step="any" value={f.capacidad_m3} onChange={(e) => set("capacidad_m3", e.target.value)} required /></Campo>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Campo etiqueta="Zona base">
@@ -237,16 +240,16 @@ function FormConductor({ onListo }: { onListo: () => void }) {
   }
   return (
     <form onSubmit={enviar} className="space-y-4">
-      <Campo etiqueta="Nombre completo"><Input value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} required minLength={3} /></Campo>
+      <Campo etiqueta="Nombre completo"><Input value={f.nombre} onChange={(e) => setF({ ...f, nombre: soloLetras(e.target.value) })} required minLength={3} placeholder="Solo letras" /></Campo>
       <div className="grid grid-cols-2 gap-3">
-        <Campo etiqueta="Número de licencia"><Input value={f.numero_licencia} onChange={(e) => setF({ ...f, numero_licencia: e.target.value })} required minLength={4} /></Campo>
+        <Campo etiqueta="Número de licencia"><Input value={f.numero_licencia} onChange={(e) => setF({ ...f, numero_licencia: soloAlfanumerico(e.target.value) })} required minLength={4} /></Campo>
         <Campo etiqueta="Categoría">
           <Select value={f.categoria} onChange={(e) => setF({ ...f, categoria: e.target.value })}>
             {["C1", "C2", "C3"].map((c) => <option key={c}>{c}</option>)}
           </Select>
         </Campo>
       </div>
-      <Campo etiqueta="Teléfono"><Input value={f.telefono} onChange={(e) => setF({ ...f, telefono: e.target.value })} /></Campo>
+      <Campo etiqueta="Teléfono"><Input type="tel" inputMode="numeric" value={f.telefono} onChange={(e) => setF({ ...f, telefono: soloTelefono(e.target.value) })} pattern="\+?[0-9 ]{7,15}" title="Solo números, de 7 a 15 dígitos" placeholder="3001234567" /></Campo>
       <div className="rounded-[12px] bg-fill px-3">
         <Interruptor etiqueta="Certificación en mercancía peligrosa" activo={f.certificacion_hazmat} onChange={(v) => setF({ ...f, certificacion_hazmat: v })} />
       </div>

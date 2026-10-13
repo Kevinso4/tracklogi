@@ -136,8 +136,31 @@ export function Campo({ etiqueta, children, ayuda }: { etiqueta: string; childre
 const claseInput =
   "h-10 w-full rounded-[10px] bg-fill px-3 text-[15px] text-label outline-none ring-accent/40 transition placeholder:text-label-3 focus:bg-surface focus:ring-4";
 
+/** Limpian lo que se escribe para que el campo solo contenga caracteres válidos. */
+export const soloLetras = (v: string) => v.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ' .-]/g, "");
+export const soloTelefono = (v: string) => v.replace(/[^0-9+ ]/g, "").slice(0, 16);
+export const soloAlfanumerico = (v: string) => v.replace(/[^A-Za-z0-9-]/g, "");
+
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={cx(claseInput, props.className)} />;
+  // Un campo numérico del navegador acepta «e», «+» y «-» (notación científica): se bloquean al teclear.
+  const esNumero = props.type === "number";
+  const negativos = esNumero && Number(props.min) < 0;
+  return (
+    <input
+      {...props}
+      inputMode={props.inputMode ?? (esNumero ? "decimal" : undefined)}
+      onKeyDown={(e) => {
+        if (esNumero && (["e", "E", "+"].includes(e.key) || (e.key === "-" && !negativos))) e.preventDefault();
+        props.onKeyDown?.(e);
+      }}
+      onPaste={(e) => {
+        // Al pegar no hay teclas que bloquear: se rechaza lo que no sea un número.
+        if (esNumero && !(negativos ? /^-?\d*[.,]?\d*$/ : /^\d*[.,]?\d*$/).test(e.clipboardData.getData("text").trim())) e.preventDefault();
+        props.onPaste?.(e);
+      }}
+      className={cx(claseInput, props.className)}
+    />
+  );
 }
 
 export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {

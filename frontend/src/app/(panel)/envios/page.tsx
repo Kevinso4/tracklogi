@@ -16,6 +16,7 @@ import {
   Interruptor,
   Segmentado,
   Select,
+  soloLetras,
   useAvisos,
   Vacio,
 } from "@/components/ui";
@@ -123,10 +124,10 @@ function FormularioEnvio({ onCreado }: { onCreado: (e: Envio) => void }) {
       {internacional && <Badge tono="indigo">Envío internacional · requiere documentación aduanera</Badge>}
       <div className="grid grid-cols-2 gap-3">
         <Campo etiqueta="Peso (kg)">
-          <Input type="number" min="1" step="any" value={f.peso_kg} onChange={(e) => set("peso_kg", e.target.value)} required />
+          <Input type="number" min="1" max="40000" step="any" value={f.peso_kg} onChange={(e) => set("peso_kg", e.target.value)} required />
         </Campo>
         <Campo etiqueta="Volumen (m³)">
-          <Input type="number" min="0.1" step="any" value={f.volumen_m3} onChange={(e) => set("volumen_m3", e.target.value)} required />
+          <Input type="number" min="0.1" max="120" step="any" value={f.volumen_m3} onChange={(e) => set("volumen_m3", e.target.value)} required />
         </Campo>
       </div>
       <Campo etiqueta="Fecha límite (SLA)">
@@ -297,7 +298,7 @@ function DetalleEnvio({ id, onCambio }: { id: string; onCambio: () => void }) {
       {accion === "entrega" && (
         <div className="space-y-3 rounded-[14px] bg-green/8 p-4 ring-1 ring-green/20">
           <Campo etiqueta="Nombre de quien recibe">
-            <Input value={texto} onChange={(x) => setTexto(x.target.value)} placeholder="Ej.: Laura Méndez" />
+            <Input value={texto} onChange={(x) => setTexto(soloLetras(x.target.value))} placeholder="Ej.: Laura Méndez" />
           </Campo>
           <div className="flex gap-2">
             <Boton variante="secundario" onClick={() => setAccion(null)}>Cancelar</Boton>

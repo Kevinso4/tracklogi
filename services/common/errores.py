@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .logs import request_id_var
+from .validacion import mensaje_es
 
 log = logging.getLogger("http")
 
@@ -80,7 +81,7 @@ def instalar_manejadores(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def validacion(_: Request, exc: RequestValidationError):
         detalles = [
-            {"campo": ".".join(str(p) for p in e["loc"][1:]), "mensaje": e["msg"]} for e in exc.errors()
+            {"campo": ".".join(str(p) for p in e["loc"][1:]), "mensaje": mensaje_es(e)} for e in exc.errors()
         ]
         return JSONResponse(
             cuerpo_error("entrada_invalida", "La petición tiene datos inválidos", detalles), status_code=422

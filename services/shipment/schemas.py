@@ -4,14 +4,16 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from common.validacion import CON_LETRA, EMAIL, NOMBRE
+
 from .models import EstadoEnvio, TipoEventoEnvio
 
 
 class EnvioIn(BaseModel):
-    cliente: str = Field(min_length=2, max_length=120)
-    cliente_email: str | None = Field(default=None, max_length=120)
-    origen: str = Field(min_length=2, max_length=200)
-    destino: str = Field(min_length=2, max_length=200)
+    cliente: str = Field(min_length=2, max_length=120, pattern=CON_LETRA)
+    cliente_email: str | None = Field(default=None, max_length=120, pattern=EMAIL)
+    origen: str = Field(min_length=2, max_length=200, pattern=CON_LETRA)
+    destino: str = Field(min_length=2, max_length=200, pattern=CON_LETRA)
     origen_lat: float = Field(ge=-90, le=90)
     origen_lon: float = Field(ge=-180, le=180)
     destino_lat: float = Field(ge=-90, le=90)
@@ -107,13 +109,13 @@ class SeguimientoOut(BaseModel):
 
 class IncidenciaIn(BaseModel):
     tipo: Literal["averia", "accidente", "retraso_trafico", "clima", "otro"]
-    descripcion: str = Field(min_length=3, max_length=500)
+    descripcion: str = Field(min_length=3, max_length=500, pattern=CON_LETRA)
     lat: float | None = Field(default=None, ge=-90, le=90)
     lon: float | None = Field(default=None, ge=-180, le=180)
 
 
 class PruebaEntregaIn(BaseModel):
-    nombre_receptor: str = Field(min_length=2, max_length=120)
+    nombre_receptor: str = Field(min_length=2, max_length=120, pattern=NOMBRE)
     url_firma: str | None = Field(default=None, max_length=500)
     url_foto: str | None = Field(default=None, max_length=500)
     lat: float | None = Field(default=None, ge=-90, le=90)
