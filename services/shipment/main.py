@@ -19,6 +19,7 @@ from typing import Annotated
 from fastapi import BackgroundTasks, Depends, Header, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy import func, or_, select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
@@ -29,8 +30,11 @@ from common.errores import error
 from common.outbox import idempotente, registrar_evento
 from common.seguridad import requiere_rol
 
-from .models import Envio, EstadoEnvio, EventoEnvio, PruebaEntrega, TipoEventoEnvio
+from .models import Cliente, Envio, EstadoEnvio, EventoEnvio, PruebaEntrega, TipoEventoEnvio
 from .schemas import (
+    ClienteEditIn,
+    ClienteIn,
+    ClienteOut,
     EnvioDetalleOut,
     EnvioIn,
     EnvioOut,
@@ -235,6 +239,26 @@ def migrar() -> None:
     with engine.begin() as conn:
         conn.execute(text("ALTER TABLE envios ADD COLUMN IF NOT EXISTS eta TIMESTAMPTZ"))
         conn.execute(text("ALTER TABLE envios ADD COLUMN IF NOT EXISTS distancia_km NUMERIC(8,1)"))
+        conn.execute(text("ALTER TABLE envios ADD COLUMN IF NOT EXISTS cliente_id UUID REFERENCES clientes(id)"))
+    with SessionLocal() as db:
+        if not db.scalar(select(func.count()).select_from(Cliente)):
+            db.add_all(Cliente(nombre=n, nit=nit, email=e, telefono=t) for n, nit, e, t in CLIENTES_DEMO)
+            # Envíos creados antes de existir el registro de clientes: su cliente pasa a estar registrado.
+            conocidos = {n.lower() for n, *_ in CLIENTES_DEMO}
+            sueltos = [n for n in db.scalars(select(Envio.cliente).distinct()) if n.lower() not in conocidos]
+            db.add_all(Cliente(nombre=n, nit=str(900000000 + i)) for i, n in enumerate(sueltos))
+            db.flush()
+        db.execute(text("UPDATE envios e SET cliente_id = c.id FROM clientes c "
+                        "WHERE e.cliente_id IS NULL AND lower(e.cliente) = lower(c.nombre)"))
+        db.commit()
+
+
+CLIENTES_DEMO = [
+    ("Distribuidora del Sinú S.A.S.", "900123456-7", "logistica@sinu.co", "6047891234"),
+    ("Lácteos de la Costa S.A.", "800456789-1", "despachos@lacteoscosta.co", "6053214567"),
+    ("Agroinsumos Córdoba Ltda.", "901234567-3", "compras@agrocordoba.co", "3004567890"),
+    ("Farmacéutica Caribe S.A.S.", "900987654-2", "envios@farmacaribe.co", "3157654321"),
+]
 
 
 app = crear_app(
@@ -315,6 +339,66 @@ def historial(envio_id: uuid.UUID, db: Db):
     ]
 
 
+# ---------------------------------------------------------------- clientes
+
+# Datos de contacto de terceros: solo quien gestiona los envíos (operador) los consulta y modifica.
+GESTION_CLIENTES = requiere_rol("operador")
+DUPLICADO = (409, "cliente_duplicado", "Ya existe un cliente con ese nombre o ese NIT")
+
+
+def guardar_cliente(db: Session, cliente: Cliente) -> Cliente:
+    try:
+        db.add(cliente)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise error(*DUPLICADO)
+    return cliente
+
+
+def obtener_cliente(db: Session, cliente_id: uuid.UUID) -> Cliente:
+    cliente = db.get(Cliente, cliente_id)
+    if not cliente:
+        raise error(404, "cliente_no_encontrado", "El cliente no existe")
+    return cliente
+
+
+@app.get("/api/v1/clientes", response_model=list[ClienteOut], tags=["clientes"])
+def listar_clientes(db: Db, q: str | None = Query(default=None, max_length=60), solo_activos: bool = False,
+                    _=GESTION_CLIENTES):
+    consulta = (select(Cliente, func.count(Envio.id)).outerjoin(Envio, Envio.cliente_id == Cliente.id)
+                .group_by(Cliente.id).order_by(Cliente.nombre))
+    if q:
+        consulta = consulta.where(or_(Cliente.nombre.ilike(f"%{q}%"), Cliente.nit.ilike(f"%{q}%")))
+    if solo_activos:
+        consulta = consulta.where(Cliente.activo)
+    return [ClienteOut.model_validate(c).model_copy(update={"envios": n}) for c, n in db.execute(consulta)]
+
+
+@app.post("/api/v1/clientes", response_model=ClienteOut, status_code=201, tags=["clientes"])
+def crear_cliente(datos: ClienteIn, db: Db, _=GESTION_CLIENTES):
+    if db.scalar(select(Cliente.id).where(func.lower(Cliente.nombre) == datos.nombre.lower())):
+        raise error(*DUPLICADO)
+    return guardar_cliente(db, Cliente(**datos.model_dump()))
+
+
+@app.put("/api/v1/clientes/{cliente_id}", response_model=ClienteOut, tags=["clientes"])
+def editar_cliente(cliente_id: uuid.UUID, datos: ClienteEditIn, db: Db, _=GESTION_CLIENTES):
+    cliente = obtener_cliente(db, cliente_id)
+    for campo, valor in datos.model_dump().items():
+        setattr(cliente, campo, valor)
+    return guardar_cliente(db, cliente)
+
+
+@app.delete("/api/v1/clientes/{cliente_id}", status_code=204, tags=["clientes"])
+def eliminar_cliente(cliente_id: uuid.UUID, db: Db, _=GESTION_CLIENTES):
+    cliente = obtener_cliente(db, cliente_id)
+    if db.scalar(select(func.count()).where(Envio.cliente_id == cliente.id)):
+        raise error(409, "cliente_con_envios", "El cliente tiene envíos registrados: desactívalo en lugar de eliminarlo")
+    db.delete(cliente)
+    db.commit()
+
+
 # ---------------------------------------------------------------- comandos
 
 
@@ -335,7 +419,17 @@ def crear(
         existente = db.scalar(select(Envio).where(Envio.idempotency_key == idempotency_key))
         if existente:
             return JSONResponse(EnvioOut.model_validate(existente).model_dump(mode="json"), status_code=200)
-    envio = Envio(**datos.model_dump(), codigo=generar_codigo(db), idempotency_key=idempotency_key)
+    campos = datos.model_dump()
+    registrado = (db.get(Cliente, datos.cliente_id) if datos.cliente_id
+                  else db.scalar(select(Cliente).where(func.lower(Cliente.nombre) == datos.cliente.strip().lower())))
+    if datos.cliente_id and not registrado:
+        raise error(404, "cliente_no_encontrado", "El cliente no existe")
+    if registrado:
+        if not registrado.activo:
+            raise error(409, "cliente_inactivo", f"{registrado.nombre} está inactivo y no puede recibir envíos nuevos")
+        campos |= {"cliente_id": registrado.id, "cliente": registrado.nombre,
+                   "cliente_email": datos.cliente_email or registrado.email}
+    envio = Envio(**campos, codigo=generar_codigo(db), idempotency_key=idempotency_key)
     db.add(envio)
     db.flush()
     registrar(db, envio, TipoEventoEnvio.creado, f"{envio.origen} → {envio.destino}")

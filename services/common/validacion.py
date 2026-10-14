@@ -12,6 +12,7 @@ CON_LETRA = rf"[{_LETRAS}]"                # texto libre que no puede ser solo n
 TELEFONO = r"^\+?[0-9 ]{7,15}$"
 EMAIL = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 ALFANUMERICO = r"^[A-Za-z0-9-]+$"
+NIT = r"^[0-9]{6,12}(-[0-9])?$"             # 900123456 o 900123456-7 (con dígito de verificación)
 
 _POR_PATRON = {
     NOMBRE: "Solo se permiten letras y espacios",
@@ -19,6 +20,7 @@ _POR_PATRON = {
     TELEFONO: "Solo números (de 7 a 15 dígitos)",
     EMAIL: "El correo no es válido (ejemplo: nombre@empresa.co)",
     ALFANUMERICO: "Solo letras, números y guion",
+    NIT: "Solo números, de 6 a 12 dígitos (ejemplo: 900123456-7)",
 }
 
 _POR_TIPO = {

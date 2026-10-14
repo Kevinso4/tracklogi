@@ -67,12 +67,19 @@ Usuarios de demostración:
 
 | Usuario | Gestiona | Solo consulta |
 |---|---|---|
-| `operador` / `operador123` | Envíos y facturación | Flota (camiones disponibles) |
+| `operador` / `operador123` | Envíos, clientes y facturación | — |
 | `gestor` / `gestor123` | Flota y mantenimiento | — |
 | `admin` / `admin123` | Todo | — |
 
 Mínimo privilegio: cada perfil solo ve en el menú los apartados de su área (Resumen y Seguimiento son
-comunes), y Facturación está bloqueada también en el backend para quien no sea operador o admin.
+comunes), y Clientes y Facturación están bloqueados también en el backend para quien no sea operador o
+admin. El operador no entra a Flota: el formulario *Nuevo envío* le indica cuántos camiones libres
+cumplen la carga.
+
+**Gestión de clientes** (`/clientes`, dentro de Shipment): alta, edición, desactivación y borrado (solo
+si no tiene envíos) con NIT y nombre únicos. Cada envío se crea para un cliente registrado y toma de él
+el correo al que Notification avisa; la tarifa pactada se guarda en Billing. Comprobación automática:
+`python services/shipment/check_clientes.py`.
 
 Comandos útiles:
 

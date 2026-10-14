@@ -47,6 +47,7 @@ PREFIJOS = {
     "telemetria": "tracking",
     "dispositivos": "tracking",
     "envios": "shipment",
+    "clientes": "shipment",
     "mantenimiento": "maintenance",
     "notificaciones": "notification",
     "facturacion": "billing",

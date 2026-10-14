@@ -6,17 +6,18 @@ import { useEffect } from "react";
 import { useDatos } from "@/lib/hooks";
 import { ETIQUETA_ROL, useSesion } from "@/lib/sesion";
 import type { EstadoServicio } from "@/lib/types";
-import { IconCaja, IconCamion, IconFactura, IconLlave, IconMapa, IconResumen, IconSalir } from "./icons";
+import { IconCaja, IconCamion, IconFactura, IconLlave, IconMapa, IconPersonas, IconResumen, IconSalir } from "./icons";
 import { cx } from "./ui";
 
 // Mínimo privilegio: cada perfil solo ve los apartados de su área. Sin `roles`, el apartado es común.
-// El operador conserva Flota en modo consulta porque necesita ver qué camiones hay disponibles.
+// El operador no ve Flota: al crear un envío el formulario le dice cuántos camiones sirven para esa carga.
 // `servicio`: microservicio del que depende el apartado; si no está desplegado, el apartado no se ofrece.
 const NAV: { href: string; texto: string; icono: typeof IconResumen; roles?: string[]; servicio?: string }[] = [
   { href: "/", texto: "Resumen", icono: IconResumen },
   { href: "/mapa", texto: "Seguimiento", icono: IconMapa },
   { href: "/envios", texto: "Envíos", icono: IconCaja, roles: ["admin", "operador"] },
-  { href: "/flota", texto: "Flota", icono: IconCamion, roles: ["admin", "operador", "gestor_flota"] },
+  { href: "/clientes", texto: "Clientes", icono: IconPersonas, roles: ["admin", "operador"] },
+  { href: "/flota", texto: "Flota", icono: IconCamion, roles: ["admin", "gestor_flota"] },
   { href: "/mantenimiento", texto: "Mantenimiento", icono: IconLlave, roles: ["admin", "gestor_flota"] },
   { href: "/facturacion", texto: "Facturación", icono: IconFactura, roles: ["admin", "operador"], servicio: "billing" },
 ];

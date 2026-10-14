@@ -44,6 +44,20 @@ class TipoEventoEnvio(str, enum.Enum):
     devuelto = "devuelto"
 
 
+class Cliente(Base):
+    """Empresa que contrata los envíos. El nombre no se edita: Billing guarda tarifas y facturas por nombre."""
+
+    __tablename__ = "clientes"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    nombre: Mapped[str] = mapped_column(String(120), unique=True)
+    nit: Mapped[str] = mapped_column(String(14), unique=True)
+    email: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    telefono: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=ahora)
+
+
 class Envio(Base):
     __tablename__ = "envios"
     __table_args__ = (
@@ -54,7 +68,8 @@ class Envio(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     codigo: Mapped[str] = mapped_column(String(12), unique=True)  # código público de seguimiento
-    cliente: Mapped[str] = mapped_column(String(120))
+    cliente_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("clientes.id"), nullable=True, index=True)
+    cliente: Mapped[str] = mapped_column(String(120))  # copia del nombre: el envío se lee sin unir tablas
     cliente_email: Mapped[str | None] = mapped_column(String(120), nullable=True)
     origen: Mapped[str] = mapped_column(String(200))
     destino: Mapped[str] = mapped_column(String(200))

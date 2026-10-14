@@ -4,13 +4,43 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from common.validacion import CON_LETRA, EMAIL, NOMBRE
+from common.validacion import CON_LETRA, EMAIL, NIT, NOMBRE, TELEFONO
 
 from .models import EstadoEnvio, TipoEventoEnvio
 
 
+class ClienteEditIn(BaseModel):
+    nit: str = Field(pattern=NIT)
+    email: str | None = Field(default=None, max_length=120, pattern=EMAIL)
+    telefono: str | None = Field(default=None, pattern=TELEFONO)
+    activo: bool = True
+
+
+class ClienteIn(ClienteEditIn):
+    nombre: str = Field(min_length=2, max_length=120, pattern=CON_LETRA)
+
+    @field_validator("nombre")
+    @classmethod
+    def sin_espacios_sobrantes(cls, v: str) -> str:
+        return " ".join(v.split())
+
+
+class ClienteOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    nombre: str
+    nit: str
+    email: str | None
+    telefono: str | None
+    activo: bool
+    creado_en: datetime
+    envios: int = 0
+
+
 class EnvioIn(BaseModel):
-    cliente: str = Field(min_length=2, max_length=120, pattern=CON_LETRA)
+    # Se indica el cliente registrado (cliente_id) o, por compatibilidad, su nombre.
+    cliente_id: uuid.UUID | None = None
+    cliente: str | None = Field(default=None, min_length=2, max_length=120, pattern=CON_LETRA)
     cliente_email: str | None = Field(default=None, max_length=120, pattern=EMAIL)
     origen: str = Field(min_length=2, max_length=200, pattern=CON_LETRA)
     destino: str = Field(min_length=2, max_length=200, pattern=CON_LETRA)
@@ -35,6 +65,8 @@ class EnvioIn(BaseModel):
 
     @model_validator(mode="after")
     def origen_distinto(self):
+        if not self.cliente_id and not self.cliente:
+            raise ValueError("Selecciona el cliente del envío")
         if self.origen.strip().lower() == self.destino.strip().lower():
             raise ValueError("El origen y el destino deben ser distintos")
         return self
@@ -61,6 +93,7 @@ class EnvioOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     codigo: str
+    cliente_id: uuid.UUID | None = None
     cliente: str
     cliente_email: str | None
     origen: str

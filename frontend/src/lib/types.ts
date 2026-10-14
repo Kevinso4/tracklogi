@@ -46,9 +46,21 @@ export interface EventoEnvio {
   notas: string | null;
 }
 
+export interface Cliente {
+  id: string;
+  nombre: string;
+  nit: string;
+  email: string | null;
+  telefono: string | null;
+  activo: boolean;
+  creado_en: string;
+  envios: number;
+}
+
 export interface Envio {
   id: string;
   codigo: string;
+  cliente_id: string | null;
   cliente: string;
   cliente_email: string | null;
   origen: string;

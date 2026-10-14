@@ -21,10 +21,10 @@ import {
   Vacio,
 } from "@/components/ui";
 import { api } from "@/lib/api";
-import { CIUDADES, ESTADO_ENVIO, fmtFecha, fmtNum, hace } from "@/lib/formato";
+import { CIUDADES, ESTADO_ENVIO, fmtFecha, fmtNum, hace, plural } from "@/lib/formato";
 import { useDatos, useEventosEnVivo } from "@/lib/hooks";
 import { usePuede } from "@/lib/sesion";
-import type { Envio, EnvioDetalle, EstadoEnvio } from "@/lib/types";
+import type { Cliente, Envio, EnvioDetalle, EstadoEnvio } from "@/lib/types";
 
 type Filtro = "todos" | EstadoEnvio;
 
@@ -48,9 +48,9 @@ function enHoras(h: number) {
 
 function FormularioEnvio({ onCreado }: { onCreado: (e: Envio) => void }) {
   const avisar = useAvisos();
+  const clientes = useDatos<Cliente[]>("/api/v1/clientes?solo_activos=true");
   const [f, setF] = useState({
-    cliente: "Distribuidora del Sinú S.A.S.",
-    cliente_email: "logistica@sinu.co",
+    cliente_id: "",
     origen: "Montería",
     destino: "Cartagena",
     sla: enHoras(24),
@@ -74,8 +74,7 @@ function FormularioEnvio({ onCreado }: { onCreado: (e: Envio) => void }) {
         method: "POST",
         headers: { "Idempotency-Key": crypto.randomUUID() },
         json: {
-          cliente: f.cliente,
-          cliente_email: f.cliente_email || null,
+          cliente_id: f.cliente_id || clientes.datos?.[0]?.id,
           origen: o.nombre,
           destino: d.nombre,
           origen_lat: o.lat,
@@ -99,15 +98,19 @@ function FormularioEnvio({ onCreado }: { onCreado: (e: Envio) => void }) {
     }
   }
 
+  // Lo único de Flota que el operador necesita: cuántos camiones libres pueden llevar esta carga.
+  const aptos = useDatos<unknown[]>(
+    `/api/v1/vehiculos/disponibles?peso_kg=${Number(f.peso_kg) || 0}&volumen_m3=${Number(f.volumen_m3) || 0}&refrigerado=${f.requiere_refrigeracion}&hazmat=${f.es_hazmat}`,
+  );
+
   const internacional = CIUDADES.find((c) => c.nombre === f.origen)?.pais !== CIUDADES.find((c) => c.nombre === f.destino)?.pais;
 
   return (
     <form onSubmit={enviar} className="space-y-4">
-      <Campo etiqueta="Cliente">
-        <Input value={f.cliente} onChange={(e) => set("cliente", e.target.value)} required minLength={2} />
-      </Campo>
-      <Campo etiqueta="Correo de notificación">
-        <Input type="email" value={f.cliente_email} onChange={(e) => set("cliente_email", e.target.value)} />
+      <Campo etiqueta="Cliente" ayuda={clientes.datos && !clientes.datos.length ? "No hay clientes activos: regístralo primero en «Clientes»." : "Los avisos del envío llegan al correo registrado del cliente."}>
+        <Select value={f.cliente_id} onChange={(e) => set("cliente_id", e.target.value)} required>
+          {(clientes.datos ?? []).map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+        </Select>
       </Campo>
       <div className="grid grid-cols-2 gap-3">
         <Campo etiqueta="Origen">
@@ -137,8 +140,15 @@ function FormularioEnvio({ onCreado }: { onCreado: (e: Envio) => void }) {
         <Interruptor etiqueta="Requiere refrigeración" activo={f.requiere_refrigeracion} onChange={(v) => set("requiere_refrigeracion", v)} />
         <Interruptor etiqueta="Mercancía peligrosa (hazmat)" activo={f.es_hazmat} onChange={(v) => set("es_hazmat", v)} />
       </div>
+      {aptos.datos && (
+        <Badge tono={aptos.datos.length ? "green" : "orange"} punto>
+          {aptos.datos.length
+            ? `${plural(aptos.datos.length, "camión disponible", "camiones disponibles")} para esta carga`
+            : "Ningún camión libre cumple esta carga: el envío quedará retrasado hasta que haya uno"}
+        </Badge>
+      )}
       {error && <ErrorCaja mensaje={error} />}
-      <Boton type="submit" cargando={enviando} className="h-11 w-full">
+      <Boton type="submit" cargando={enviando} disabled={!clientes.datos?.length} className="h-11 w-full">
         Crear envío
       </Boton>
       <p className="text-center text-[12px] text-label-3">
