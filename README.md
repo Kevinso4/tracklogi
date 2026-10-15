@@ -8,6 +8,29 @@ Implementación funcional del **Momento 2** sobre la arquitectura definida en
   (los servicios gratuitos de Render se duermen: el primer acceso puede tardar hasta un minuto).
 - **Explicación sencilla del sistema:** [docs/LogiTrack_Explicado_Facil.docx](docs/LogiTrack_Explicado_Facil.docx)
 
+## Repositorios y despliegue de cada microservicio
+
+Este es el repositorio de **integración** (compose del sistema completo, panel web y despliegue). Cada
+microservicio tiene además su propio repositorio, con su historial, su README, su `.env.example`, su
+`docker-compose.yml` para ejecutarlo solo y su base de datos (`db/schema.sql` y `db/datos_ejemplo.sql`).
+Se generan desde aquí con `bash infra/repos/publicar.sh`.
+
+| Microservicio | Repositorio | Despliegue (backend) | Base de datos |
+|---|---|---|---|
+| API Gateway | [logitrack-gateway](https://github.com/Kevinso4/logitrack-gateway) | https://tracklogi-gateway.onrender.com | — (Redis) |
+| Fleet | [logitrack-fleet](https://github.com/Kevinso4/logitrack-fleet) | https://tracklogi-fleet.onrender.com | [`fleet_db`](services/fleet/db) |
+| Tracking | [logitrack-tracking](https://github.com/Kevinso4/logitrack-tracking) | https://tracklogi-tracking.onrender.com | [`tracking_db`](services/tracking/db) |
+| Shipment | [logitrack-shipment](https://github.com/Kevinso4/logitrack-shipment) | https://tracklogi-shipment.onrender.com | [`shipment_db`](services/shipment/db) |
+| Maintenance | [logitrack-maintenance](https://github.com/Kevinso4/logitrack-maintenance) | https://tracklogi-maintenance.onrender.com | [`maintenance_db`](services/maintenance/db) |
+| Routing | [logitrack-routing](https://github.com/Kevinso4/logitrack-routing) | https://tracklogi-routing.onrender.com | [`routing_db`](services/routing/db) |
+| Notification | [logitrack-notification](https://github.com/Kevinso4/logitrack-notification) | https://tracklogi-notification.onrender.com | [`notification_db`](services/notification/db) |
+| Billing | [logitrack-billing](https://github.com/Kevinso4/logitrack-billing) | https://tracklogi-billing.onrender.com | [`billing_db`](services/billing/db) |
+
+Cada enlace de despliegue responde `/health`, `/ready` (conexión a su base y a RabbitMQ) y `/docs`
+(documentación interactiva). Las credenciales se configuran como variables de entorno en Render, nunca
+en el código, y los microservicios solo aceptan peticiones que llegan por el API Gateway. Integraciones
+externas: OSRM (rutas por carretera), OpenFreeMap (mapa) y Mailtrap en modo de pruebas (correos).
+
 | Pieza | Tecnología | Base de datos | Publica | Consume |
 |---|---|---|---|---|
 | **API Gateway** | FastAPI · JWT RS256 · Redis | — (Redis para rate limit y sesiones) | — | `#` (feed en vivo para el panel) |
