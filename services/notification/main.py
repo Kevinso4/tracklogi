@@ -3,7 +3,8 @@
 Consume:  route.assigned, shipment.reassigned, shipment.incident, shipment.delayed,
           shipment.delivered, shipment.returned, maintenance.alert
 Publica:  notification.sent, notification.failed   (vía outbox)
-Si SMTP_HOST no está configurado (p. ej. en Render), la notificación se registra como «simulada».
+Si SMTP_HOST no está configurado, la notificación se registra como «simulada». En la nube se usa
+Mailtrap en modo de pruebas (SMTP_USER y SMTP_PASSWORD).
 """
 import logging
 import os
@@ -28,6 +29,9 @@ Db = Annotated[Session, Depends(get_db)]
 
 SMTP_HOST = os.getenv("SMTP_HOST")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "1025"))
+# Con usuario (p. ej. Mailtrap en modo de pruebas) la conexión se cifra con STARTTLS y se autentica.
+SMTP_USER = os.getenv("SMTP_USER")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 REMITENTE = os.getenv("NOTIFICACIONES_REMITENTE", "LogiTrack <notificaciones@logitrack.co>")
 CORREO_GESTOR = os.getenv("CORREO_GESTOR", "gestor.flota@logitrack.co")
 HORA_COLOMBIA = timezone(timedelta(hours=-5))
@@ -77,7 +81,10 @@ def enviar_correo(destinatario: str, asunto: str, cuerpo: str) -> tuple[str, str
     msg["From"], msg["To"], msg["Subject"] = REMITENTE, destinatario, asunto
     msg.set_content(cuerpo)
     try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=5) as smtp:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as smtp:
+            if SMTP_USER:
+                smtp.starttls()
+                smtp.login(SMTP_USER, SMTP_PASSWORD)
             smtp.send_message(msg)
         return "enviada", None
     except (OSError, smtplib.SMTPException) as exc:

@@ -9,16 +9,16 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 FROM python:${PYTHON_VERSION}-slim
 ARG SERVICE
-ENV PYTHONUNBUFFERED=1 \
+ENV SERVICE=${SERVICE} \
+    PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app
 WORKDIR /app
 COPY --from=builder /install /usr/local
-COPY common ./common
-COPY ${SERVICE} ./service
-# Tracking puede embeber el simulador (SIMULADOR=true) en despliegues de un solo contenedor.
-COPY simulator ./simulator
+# Todo el código de la carpeta (common, el servicio y, en Tracking, el simulador que puede embeber).
+# Así la misma imagen se construye en el repositorio de integración y en el repositorio de cada servicio.
+COPY . .
 RUN useradd --create-home --uid 10001 app
 USER app
 EXPOSE 8000
-CMD ["uvicorn", "service.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
+CMD ["sh", "-c", "exec uvicorn ${SERVICE}.main:app --host 0.0.0.0 --port 8000 --no-access-log"]

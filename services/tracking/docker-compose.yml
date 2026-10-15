@@ -1,0 +1,45 @@
+# Tracking Ingestion Service por sí solo: su base de datos (restaurada desde db/) y RabbitMQ.
+#   docker compose up --build        → http://localhost:${PUERTO:-8000}/docs
+
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: logitrack
+      POSTGRES_PASSWORD: logitrack
+      POSTGRES_DB: tracking_db
+    volumes:
+      # Al crear el volumen se restaura el esquema y los datos de ejemplo.
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro
+      - ./db/datos_ejemplo.sql:/docker-entrypoint-initdb.d/20-datos.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U logitrack -d tracking_db"]
+      interval: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    environment:
+      RABBITMQ_DEFAULT_USER: logitrack
+      RABBITMQ_DEFAULT_PASS: logitrack
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      retries: 20
+
+  tracking:
+    build:
+      context: ..
+      args:
+        SERVICE: tracking
+    environment:
+      DATABASE_URL: postgresql+psycopg://logitrack:logitrack@postgres:5432/tracking_db
+      RABBITMQ_URL: amqp://logitrack:logitrack@rabbitmq:5672/
+      SIMULADOR: "false"
+    ports:
+      - "${PUERTO:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy

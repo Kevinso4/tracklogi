@@ -1,0 +1,30 @@
+# API Gateway por sí solo: su base de datos (restaurada desde db/) y RabbitMQ.
+#   docker compose up --build        → http://localhost:${PUERTO:-8000}/docs
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    environment:
+      RABBITMQ_DEFAULT_USER: logitrack
+      RABBITMQ_DEFAULT_PASS: logitrack
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+
+  gateway:
+    build:
+      context: ..
+      args:
+        SERVICE: gateway
+    environment:
+      RABBITMQ_URL: amqp://logitrack:logitrack@rabbitmq:5672/
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "${PUERTO:-8000}:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy

@@ -189,7 +189,7 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE: simulator
-    command: ["python", "-m", "service.main"]
+    command: ["python", "-m", "simulator.main"]
     restart: unless-stopped
     depends_on:
       - fleet
