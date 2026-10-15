@@ -14,7 +14,7 @@ permissions:
 
 env:
   SERVICIO: maintenance
-  IMAGEN: ghcr.io/${{ github.repository_owner }}/logitrack-maintenance
+  IMAGEN: ghcr.io/kevinso4/tracklogi-maintenance
 
 jobs:
   ci:

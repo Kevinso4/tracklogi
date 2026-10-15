@@ -14,7 +14,7 @@ permissions:
 
 env:
   SERVICIO: billing
-  IMAGEN: ghcr.io/${{ github.repository_owner }}/logitrack-billing
+  IMAGEN: ghcr.io/kevinso4/tracklogi-billing
 
 jobs:
   ci:

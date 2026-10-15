@@ -31,6 +31,7 @@ for s in $SERVICIOS; do
       -e "s#^cd services/$s\$#cd $s#" -e "/^cd services\$/d" "$s/README.md" > README.md
   sed -i -e 's#"services/#"#g' -e 's#working-directory: services#working-directory: .#' \
       -e 's#cache-dependency-path: services/#cache-dependency-path: #' -e 's#context: services#context: .#' \
+      -e 's#ghcr.io/kevinso4/tracklogi-#ghcr.io/kevinso4/logitrack-#' \
       ".github/workflows/$s.yml"
   git add -A
   git -c user.name="Kevin Ayazo" -c user.email=kevinayaso95@gmail.com commit -q \

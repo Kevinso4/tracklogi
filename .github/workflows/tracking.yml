@@ -14,7 +14,7 @@ permissions:
 
 env:
   SERVICIO: tracking
-  IMAGEN: ghcr.io/${{ github.repository_owner }}/logitrack-tracking
+  IMAGEN: ghcr.io/kevinso4/tracklogi-tracking
 
 jobs:
   ci:
