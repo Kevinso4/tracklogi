@@ -6,6 +6,7 @@ import time
 import httpx
 
 from .logs import request_id_var
+from .seguridad import CABECERA_INTERNA
 
 log = logging.getLogger("cliente_http")
 
@@ -62,7 +63,7 @@ class ClienteServicio:
     def get(self, ruta: str, **params) -> httpx.Response:
         """Solo GET: es idempotente y por eso puede reintentarse sin riesgo."""
         params = {k: v for k, v in params.items() if v is not None}
-        cabeceras = {"X-User-Role": "servicio", "X-Request-ID": request_id_var.get() or ""}
+        cabeceras = {"X-User-Role": "servicio", "X-Request-ID": request_id_var.get() or "", **CABECERA_INTERNA}
         ultimo_error: Exception | None = None
         for intento in range(self.reintentos):
             self.circuito.antes()

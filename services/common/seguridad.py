@@ -3,11 +3,17 @@
 El gateway valida el JWT y reenvía la identidad en las cabeceras X-User-Id y X-User-Role.
 Las llamadas internas servicio-a-servicio viajan por la red privada con X-User-Role: servicio.
 """
+import os
 from typing import Annotated
 
 from fastapi import Depends, Header
 
 from .errores import error
+
+# En la nube cada servicio tiene URL pública: X-User-Role solo vale si llega con la clave interna,
+# que comparten el gateway y los servicios (variable INTERNAL_TOKEN). Sin ella (local) no se exige.
+INTERNAL_TOKEN = os.getenv("INTERNAL_TOKEN", "")
+CABECERA_INTERNA = {"X-Internal-Token": INTERNAL_TOKEN} if INTERNAL_TOKEN else {}
 
 ROLES = ("admin", "operador", "gestor_flota", "conductor", "cliente", "servicio")
 SIEMPRE_PERMITIDOS = ("admin", "servicio")

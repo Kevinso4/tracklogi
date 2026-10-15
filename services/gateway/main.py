@@ -24,6 +24,7 @@ from common.bus import EventBus
 from common.cliente_http import CircuitBreaker
 from common.errores import cuerpo_error, error, instalar_manejadores
 from common.logs import configurar_logs, request_id_var
+from common.seguridad import CABECERA_INTERNA
 
 from . import auth
 
@@ -331,6 +332,7 @@ async def proxy(ruta: str, request: Request):
         "X-Request-ID": request_id_var.get() or "",
         "X-User-Id": claims["sub"],
         "X-User-Role": claims["rol"],
+        **CABECERA_INTERNA,
     }
     for h in ("content-type", "idempotency-key", "x-device-key"):
         if h in request.headers:

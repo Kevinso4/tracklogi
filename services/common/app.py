@@ -1,19 +1,21 @@
 """Fábrica de aplicaciones FastAPI: mismo arranque, health checks, logs y bus en todos los servicios."""
 import asyncio
+import hmac
 import logging
 import os
 from contextlib import asynccontextmanager
 from typing import Callable
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from .bus import EventBus, Handler
 from .db import Base, db_ok, engine, esperar_db
-from .errores import instalar_manejadores
+from .errores import cuerpo_error, instalar_manejadores
 from .logs import configurar_logs
 from .outbox import publicador_outbox
+from .seguridad import INTERNAL_TOKEN
 
 Suscripcion = tuple[str, list[str], Handler]  # (nombre de cola, claves, handler)
 Tarea = Callable[[EventBus, asyncio.Event], "asyncio.Future"]
@@ -55,7 +57,17 @@ def crear_app(
 
     app = FastAPI(title=titulo, version="1.0.0", lifespan=lifespan)
     app.state.bus = bus
-    instalar_manejadores(app)
+
+    @app.middleware("http")
+    async def solo_desde_el_gateway(request: Request, call_next):
+        # La ingesta GPS se autentica con la clave de cada dispositivo (X-Device-Key).
+        libre = request.method == "POST" and request.url.path == "/api/v1/telemetria"
+        if (INTERNAL_TOKEN and request.url.path.startswith("/api/") and not libre
+                and not hmac.compare_digest(request.headers.get("x-internal-token", ""), INTERNAL_TOKEN)):
+            return JSONResponse(cuerpo_error("no_autenticado", "Accede a través del API Gateway"), status_code=401)
+        return await call_next(request)
+
+    instalar_manejadores(app)  # después: su request_id envuelve también las respuestas 401 de arriba
 
     @app.get("/health", tags=["salud"])
     def health():

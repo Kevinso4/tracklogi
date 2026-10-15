@@ -18,6 +18,7 @@ from typing import Callable
 import httpx
 
 from common.logs import configurar_logs
+from common.seguridad import CABECERA_INTERNA
 
 log = logging.getLogger("simulator")
 
@@ -38,7 +39,7 @@ ZONAS = {
     "santa marta": (11.2408, -74.1990),
     "bogotá": (4.7110, -74.0721),
 }
-CABECERAS = {"X-User-Role": "servicio"}
+CABECERAS = {"X-User-Role": "servicio", **CABECERA_INTERNA}
 CODIGOS_OBD = ["P0217", "P0300", "P0171", "P0420"]
 
 

@@ -27,6 +27,7 @@ from common.cliente_http import CircuitBreaker, CircuitoAbierto
 from common.db import Base, SessionLocal, ahora, get_db
 from common.errores import error
 from common.outbox import idempotente, registrar_evento
+from common.seguridad import CABECERA_INTERNA
 
 log = logging.getLogger("routing")
 Db = Annotated[Session, Depends(get_db)]
@@ -176,7 +177,7 @@ async def reconciliar(_bus, parar: asyncio.Event) -> None:
 
 def _reconciliar() -> None:
     envios = shipment.get("/api/v1/envios", params={"estado": "en_transito", "limite": 200},
-                          headers={"X-User-Role": "servicio"}).json()
+                          headers={"X-User-Role": "servicio", **CABECERA_INTERNA}).json()
     with SessionLocal() as db:
         con_ruta = set(db.scalars(select(Ruta.envio_id)))
         for e in envios:

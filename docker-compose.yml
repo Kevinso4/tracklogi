@@ -20,6 +20,8 @@ x-servicio: &servicio
   environment: &env-comun
     RABBITMQ_URL: amqp://logitrack:logitrack@rabbitmq:5672/
     LOG_LEVEL: INFO
+    # Vacía en local; en la nube los servicios solo aceptan peticiones del gateway con esta clave.
+    INTERNAL_TOKEN: ${INTERNAL_TOKEN:-}
 
 services:
   postgres:
@@ -197,6 +199,7 @@ services:
       - shipment
     environment:
       SERVICE_NAME: simulator
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-}
       FLEET_URL: http://fleet:8000
       TRACKING_URL: http://tracking:8000
       SHIPMENT_URL: http://shipment:8000
