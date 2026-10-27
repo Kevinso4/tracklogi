@@ -1,5 +1,7 @@
 # LogiTrack · Shipment Service
 
+[![CI-CD](https://github.com/Kevinso4/logitrack-shipment/actions/workflows/deploy.yml/badge.svg)](https://github.com/Kevinso4/logitrack-shipment/actions/workflows/deploy.yml)
+
 Microservicio de **LogiTrack**, plataforma de gestión de flotas y envíos construida con arquitectura de microservicios (Universidad Cooperativa de Colombia – Arquitectura y Modelamiento de Software).
 
 ## Responsabilidad
@@ -76,6 +78,16 @@ pip install -r requirements.txt
 PYTHONPATH=. uvicorn shipment.main:app --port 8000
 ```
 
+### Pruebas automáticas
+
+```bash
+cd services
+pip install -r requirements.txt pytest
+PYTHONPATH=. python -m pytest shipment/tests
+```
+
+Son las mismas que ejecuta el pipeline de CI antes de publicar la imagen y desplegar.
+
 ## Endpoints principales
 
 Todos pasan por el API Gateway (`/api/v1/...`) con un JWT; el rol viaja en `X-User-Role` y cada servicio vuelve a comprobar el permiso.
@@ -111,7 +123,7 @@ Ver [`.env.example`](.env.example).
 
 - Producción (Render): https://tracklogi-shipment.onrender.com — salud en `https://tracklogi-shipment.onrender.com/ready`. En el plan gratuito el servicio se duerme tras 15 min; el primer acceso tarda unos 50 s.
 - Las credenciales (`DATABASE_URL`, `RABBITMQ_URL`) se configuran como variables de entorno en Render, nunca en el código.
-- Panel web: https://tracklogi.onrender.com
+- Panel web: https://tracklogi.onrender.com- **CI/CD (GitHub Actions):** `.github/workflows/deploy.yml` invoca el pipeline reutilizable de [logitrack-pipelines](https://github.com/Kevinso4/logitrack-pipelines). En cada push a `main`: **test** (lint, pytest, pip-audit, gitleaks) → **docker** (imagen `ghcr.io/kevinso4/logitrack-shipment` etiquetada con el SHA del commit) → **deploy** (deploy hook de Render, guardado en el secret `RENDER_DEPLOY_HOOK`). Si una prueba falla, no se publica ni se despliega nada; un pull request solo ejecuta las pruebas.
 
 ## Equipo
 

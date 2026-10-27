@@ -21,18 +21,19 @@ for s in $SERVICIOS; do
   extra=()
   [ "$s" = tracking ] && extra=(--path services/simulator)  # Tracking puede embeber el simulador GPS
   # Solo los archivos del servicio y lo que necesita para construirse; services/ pasa a ser la raíz.
-  python -m git_filter_repo --quiet --force \
+  # MSYS2_ARG_CONV_EXCL: en Git Bash (Windows) evita que "a.yml:b.yml" se convierta como lista de rutas.
+  MSYS2_ARG_CONV_EXCL='*' python -m git_filter_repo --quiet --force \
     --path "services/$s" --path services/common --path services/Dockerfile --path services/.dockerignore \
     --path services/requirements.txt --path ".github/workflows/$s.yml" --path .gitignore "${extra[@]}" \
-    --path-rename services/:
+    --path-rename services/: --path-rename ".github/workflows/$s.yml:.github/workflows/deploy.yml"
 
   # README en la raíz (GitHub lo muestra en la portada) y CI con las rutas del repositorio separado.
   sed -e "s#](db/#]($s/db/#g" -e "s#](.env.example)#]($s/.env.example)#g" \
       -e "s#^cd services/$s\$#cd $s#" -e "/^cd services\$/d" "$s/README.md" > README.md
-  sed -i -e 's#"services/#"#g' -e 's#working-directory: services#working-directory: .#' \
-      -e 's#cache-dependency-path: services/#cache-dependency-path: #' -e 's#context: services#context: .#' \
-      -e 's#ghcr.io/kevinso4/tracklogi-#ghcr.io/kevinso4/logitrack-#' \
-      ".github/workflows/$s.yml"
+  # El pipeline lo define logitrack-pipelines; aquí solo cambian las rutas, la imagen y que sí despliega.
+  sed -i -e 's#"services/#"#g' -e "s#.github/workflows/$s.yml#.github/workflows/deploy.yml#" \
+      -e 's#directorio: services#directorio: "."#' -e 's#desplegar: false#desplegar: true#' \
+      -e 's#ghcr.io/kevinso4/tracklogi-#ghcr.io/kevinso4/logitrack-#' .github/workflows/deploy.yml
   git add -A
   git -c user.name="Kevin Ayazo" -c user.email=kevinayaso95@gmail.com commit -q \
     -m "docs: README en la raíz y CI con la estructura del repositorio propio [generado desde tracklogi]" || true

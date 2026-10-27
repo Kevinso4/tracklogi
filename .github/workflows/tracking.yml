@@ -1,84 +1,27 @@
-# CI/CD de tracking: solo se dispara cuando cambian archivos de este servicio o de la librería común.
-name: tracking
+# CI/CD de tracking: invoca el pipeline reutilizable de logitrack-pipelines (test → docker → deploy).
+# En tracklogi (integración) solo prueba y publica la imagen; el repositorio logitrack-tracking además despliega.
+name: CI-CD tracking
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
     paths: ["services/tracking/**", "services/common/**", "services/requirements.txt", "services/Dockerfile", ".github/workflows/tracking.yml"]
   pull_request:
+    branches: [main]
     paths: ["services/tracking/**", "services/common/**", "services/requirements.txt", "services/Dockerfile"]
+  workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
 
-env:
-  SERVICIO: tracking
-  IMAGEN: ghcr.io/kevinso4/tracklogi-tracking
-
 jobs:
-  ci:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: services
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-          cache-dependency-path: services/requirements.txt
-      - name: Dependencias
-        run: pip install -r requirements.txt ruff pip-audit
-      - name: Lint
-        run: ruff check --select F,E9,B --ignore B008,B904 common ${SERVICIO}
-      - name: Humo de importación
-        env:
-          DATABASE_URL: postgresql+psycopg://ci:ci@localhost:5432/ci
-          RABBITMQ_URL: amqp://guest:guest@localhost:5672/
-        run: |
-          mkdir -p /tmp/app && cp -r common /tmp/app/ && cp -r ${SERVICIO} /tmp/app/service
-          cd /tmp/app && python -c "import service.main"
-      - name: Vulnerabilidades conocidas
-        run: pip-audit -r requirements.txt
-      - name: Secretos filtrados
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build:
-    needs: ci
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build y push (etiqueta por SHA corto + latest)
-        uses: docker/build-push-action@v6
-        with:
-          context: services
-          build-args: SERVICE=${{ env.SERVICIO }}
-          push: true
-          tags: |
-            ${{ env.IMAGEN }}:${{ github.sha }}
-            ${{ env.IMAGEN }}:latest
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    # develop → staging automático; main → producción con aprobación manual (GitHub Environments)
-    environment: ${{ github.ref_name == 'main' && 'produccion' || 'staging' }}
-    steps:
-      - name: Disparar despliegue en Render
-        env:
-          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
-        run: |
-          if [ -z "$HOOK" ]; then echo "RENDER_DEPLOY_HOOK no configurado; se omite el despliegue"; exit 0; fi
-          curl -fsS -X POST "$HOOK&imgURL=${{ env.IMAGEN }}:${{ github.sha }}"
+  pipeline:
+    uses: Kevinso4/logitrack-pipelines/.github/workflows/ci.yml@main
+    with:
+      service-name: tracking
+      directorio: services
+      imagen: ghcr.io/kevinso4/tracklogi-tracking
+      desplegar: false
+      url: https://tracklogi-tracking.onrender.com
+    secrets: inherit
