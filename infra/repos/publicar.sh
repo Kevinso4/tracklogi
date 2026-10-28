@@ -34,9 +34,10 @@ for s in $SERVICIOS; do
   sed -i -e 's#"services/#"#g' -e "s#.github/workflows/$s.yml#.github/workflows/deploy.yml#" \
       -e 's#directorio: services#directorio: "."#' -e 's#desplegar: false#desplegar: true#' \
       -e 's#ghcr.io/kevinso4/tracklogi-#ghcr.io/kevinso4/logitrack-#' .github/workflows/deploy.yml
+  # Se integra en el último commit (conserva su mensaje y su autor): así cada ejecución de Actions lleva el
+  # título del cambio real y no el de un commit de mantenimiento.
   git add -A
-  git -c user.name="Kevin Ayazo" -c user.email=kevinayaso95@gmail.com commit -q \
-    -m "docs: README en la raíz y CI con la estructura del repositorio propio [generado desde tracklogi]" || true
+  git -c user.name="Kevin Ayazo" -c user.email=kevinayaso95@gmail.com commit -q --amend --no-edit || true
 
   gh repo view "$DUENO/logitrack-$s" >/dev/null 2>&1 || \
     gh repo create "$DUENO/logitrack-$s" --public \
