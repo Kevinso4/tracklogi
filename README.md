@@ -8,6 +8,15 @@ Implementación funcional del **Momento 2** sobre la arquitectura definida en
   (los servicios gratuitos de Render se duermen: el primer acceso puede tardar hasta un minuto).
 - **Explicación sencilla del sistema:** [docs/LogiTrack_Explicado_Facil.docx](docs/LogiTrack_Explicado_Facil.docx)
 
+## CI/CD con GitHub Actions
+
+Cada microservicio tiene su pipeline (`.github/workflows/deploy.yml`) que invoca el workflow reutilizable de
+[logitrack-pipelines](https://github.com/Kevinso4/logitrack-pipelines): **test** (ruff, pytest, pip-audit,
+gitleaks) → **docker** (imagen en GHCR etiquetada con el SHA del commit) → **deploy** (deploy hook de Render,
+guardado en el secret `RENDER_DEPLOY_HOOK`). Si una prueba falla no se publica ni se despliega nada, y el
+autodespliegue de Render está apagado: solo despliega el pipeline. Aquí, en el repositorio de integración, los
+mismos workflows prueban y publican la imagen pero no despliegan.
+
 ## Repositorios y despliegue de cada microservicio
 
 Este es el repositorio de **integración** (compose del sistema completo, panel web y despliegue). Cada
