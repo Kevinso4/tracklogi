@@ -23,7 +23,7 @@ class VehiculoIn(BaseModel):
     @field_validator("placa")
     @classmethod
     def placa_valida(cls, v: str) -> str:
-        v = v.strip().upper()
+        v = v.strip()
         if not all(c.isalnum() or c == "-" for c in v):
             raise ValueError("La placa solo admite letras, números y guion")
         return v
