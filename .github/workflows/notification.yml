@@ -24,4 +24,5 @@ jobs:
       imagen: ghcr.io/kevinso4/tracklogi-notification
       desplegar: false
       url: https://tracklogi-notification.onrender.com
+      render-service-id: srv-db7bqh8473hc73cpki30
     secrets: inherit

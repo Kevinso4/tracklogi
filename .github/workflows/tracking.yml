@@ -24,4 +24,5 @@ jobs:
       imagen: ghcr.io/kevinso4/tracklogi-tracking
       desplegar: false
       url: https://tracklogi-tracking.onrender.com
+      render-service-id: srv-daqqfod9fdbs73c06770
     secrets: inherit
