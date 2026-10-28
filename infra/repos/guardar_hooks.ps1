@@ -2,7 +2,7 @@
 # El valor se pega en un aviso oculto: no queda en pantalla, en archivos ni en el historial de la terminal.
 # Antes de guardarlo comprueba que el hook sea del servicio correcto (su URL contiene el id srv-...).
 #   & .\infra\repos\guardar_hooks.ps1                       # los 8
-#   & .\infra\repos\guardar_hooks.ps1 tracking shipment     # solo algunos
+#   & .\infra\repos\guardar_hooks.ps1 tracking,shipment     # solo algunos (separados por coma)
 param([string[]]$Servicios)
 $ids = [ordered]@{
     gateway      = "srv-daqqg449v7es73fo8o10"; fleet        = "srv-daqqf65g1s2s73eijfug"
