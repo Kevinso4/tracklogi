@@ -79,9 +79,12 @@ PYTHONPATH=. uvicorn billing.main:app --port 8000
 
 ```bash
 cd services
-pip install -r requirements.txt pytest
-PYTHONPATH=. python -m pytest billing/tests
+pip install -r requirements.txt pytest pytest-cov
+export DATABASE_URL=postgresql://ci:ci@localhost:55432/ci   # PostgreSQL de pruebas
+PYTHONPATH=. python -m pytest billing/tests --cov=billing --cov=common
 ```
+
+Incluyen pruebas unitarias y una de integración (`tests/test_integracion.py`: endpoint + lógica + base de datos real).
 
 Son las mismas que ejecuta el pipeline de CI antes de publicar la imagen y desplegar.
 
@@ -115,7 +118,7 @@ Ver [`.env.example`](.env.example).
 
 - Producción (Render): https://tracklogi-billing.onrender.com — salud en `https://tracklogi-billing.onrender.com/ready`. En el plan gratuito el servicio se duerme tras 15 min; el primer acceso tarda unos 50 s.
 - Las credenciales (`DATABASE_URL`, `RABBITMQ_URL`) se configuran como variables de entorno en Render, nunca en el código.
-- Panel web: https://tracklogi.onrender.com- **CI/CD (GitHub Actions):** `.github/workflows/deploy.yml` invoca el pipeline reutilizable de [logitrack-pipelines](https://github.com/Kevinso4/logitrack-pipelines). En cada push a `main`: **test** (lint, pytest, pip-audit, gitleaks) → **docker** (imagen `ghcr.io/kevinso4/logitrack-billing` etiquetada con el SHA del commit) → **deploy** (deploy hook de Render, guardado en el secret `RENDER_DEPLOY_HOOK`). Si una prueba falla, no se publica ni se despliega nada; un pull request solo ejecuta las pruebas.
+- Panel web: https://tracklogi.onrender.com- **CI/CD (GitHub Actions):** `.github/workflows/deploy.yml` invoca el pipeline reutilizable de [logitrack-pipelines](https://github.com/Kevinso4/logitrack-pipelines). En cada push a `main`: **test** (lint, pruebas unitarias y de integración con PostgreSQL real, reporte de cobertura, pip-audit, gitleaks) → **docker** (imagen `ghcr.io/kevinso4/logitrack-billing` etiquetada con el SHA del commit) → **deploy** (deploy hook de Render, guardado en el secret `RENDER_DEPLOY_HOOK`). Si una prueba falla, no se publica ni se despliega nada; un pull request solo ejecuta las pruebas.
 
 ## Equipo
 

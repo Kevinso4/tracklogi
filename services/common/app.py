@@ -14,6 +14,7 @@ from .bus import EventBus, Handler
 from .db import Base, db_ok, engine, esperar_db
 from .errores import cuerpo_error, instalar_manejadores
 from .logs import configurar_logs
+from .metricas import instrumentar
 from .outbox import publicador_outbox
 from .seguridad import INTERNAL_TOKEN
 
@@ -68,6 +69,7 @@ def crear_app(
         return await call_next(request)
 
     instalar_manejadores(app)  # después: su request_id envuelve también las respuestas 401 de arriba
+    instrumentar(app, nombre)
 
     @app.get("/health", tags=["salud"])
     def health():

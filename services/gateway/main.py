@@ -24,6 +24,7 @@ from common.bus import EventBus
 from common.cliente_http import CircuitBreaker
 from common.errores import cuerpo_error, error, instalar_manejadores
 from common.logs import configurar_logs, request_id_var
+from common.metricas import instrumentar
 from common.seguridad import CABECERA_INTERNA
 
 from . import auth
@@ -92,6 +93,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="LogiTrack · API Gateway", version="1.0.0", lifespan=lifespan)
 instalar_manejadores(app)
+instrumentar(app, "gateway")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if o.strip()],

@@ -1,0 +1,23 @@
+# Prometheus lee /metrics de los 8 microservicios cada 5 s.
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: logitrack
+    static_configs:
+      - targets: [gateway:8000]
+        labels: {servicio: gateway}
+      - targets: [fleet:8000]
+        labels: {servicio: fleet}
+      - targets: [tracking:8000]
+        labels: {servicio: tracking}
+      - targets: [shipment:8000]
+        labels: {servicio: shipment}
+      - targets: [maintenance:8000]
+        labels: {servicio: maintenance}
+      - targets: [routing:8000]
+        labels: {servicio: routing}
+      - targets: [notification:8000]
+        labels: {servicio: notification}
+      - targets: [billing:8000]
+        labels: {servicio: billing}
