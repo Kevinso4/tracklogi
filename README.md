@@ -11,11 +11,41 @@ Implementación funcional del **Momento 2** sobre la arquitectura definida en
 ## CI/CD con GitHub Actions
 
 Cada microservicio tiene su pipeline (`.github/workflows/deploy.yml`) que invoca el workflow reutilizable de
-[logitrack-pipelines](https://github.com/Kevinso4/logitrack-pipelines): **test** (ruff, pytest, pip-audit,
-gitleaks) → **docker** (imagen en GHCR etiquetada con el SHA del commit) → **deploy** (deploy hook de Render,
+[logitrack-pipelines](https://github.com/Kevinso4/logitrack-pipelines): **test** (ruff, pruebas unitarias y de integración
+con PostgreSQL y Redis reales, reporte de cobertura como artefacto, pip-audit, gitleaks) → **docker** (imagen en GHCR etiquetada con el SHA del commit) → **deploy** (deploy hook de Render,
 guardado en el secret `RENDER_DEPLOY_HOOK`). Si una prueba falla no se publica ni se despliega nada, y el
 autodespliegue de Render está apagado: solo despliega el pipeline. Aquí, en el repositorio de integración, los
 mismos workflows prueban y publican la imagen pero no despliegan.
+
+Estrategia de ramas: el trabajo se hace en ramas `feat/...` o `fix/...`, entra a `main` por pull request
+(el PR ejecuta solo las pruebas) y el merge a `main` publica la imagen y despliega.
+
+## Pruebas
+
+62 pruebas automáticas: 54 unitarias (reglas de negocio y validaciones) y 8 de integración, una por
+microservicio (`<servicio>/tests/test_integracion.py`), que recorren **endpoint + lógica + base de datos real**;
+RabbitMQ y las APIs externas (Fleet, OSRM) se simulan.
+
+```bash
+cd services
+pip install -r requirements.txt pytest pytest-cov
+docker run -d --rm -p 55432:5432 -e POSTGRES_USER=ci -e POSTGRES_PASSWORD=ci -e POSTGRES_DB=ci postgres:16-alpine
+docker run -d --rm -p 56379:6379 redis:7-alpine        # solo para el gateway
+export DATABASE_URL=postgresql://ci:ci@localhost:55432/ci REDIS_URL=redis://localhost:56379/0
+python -m pytest fleet/tests --cov=fleet --cov=common --cov-report=html
+```
+
+Sin base de datos, las de integración se saltan en local; en CI son obligatorias.
+
+## Monitoreo (Prometheus + Grafana)
+
+Cada servicio expone `/metrics` (peticiones, tiempos de respuesta por ruta, errores y eventos de negocio
+publicados/consumidos). Con `docker compose up` arrancan también:
+
+- **Prometheus** (http://localhost:9090) lee las métricas de los 8 servicios cada 5 s (`infra/prometheus/prometheus.yml`).
+- **Grafana** (http://localhost:3001) abre directamente el tablero *LogiTrack · Monitoreo*
+  (`infra/grafana/dashboards/logitrack.json`): disponibilidad por servicio, peticiones por segundo, latencia p95,
+  tasa de errores 5xx, eventos de negocio por tipo, eventos enviados a la DLQ y envíos creados/entregados.
 
 ## Repositorios y despliegue de cada microservicio
 
@@ -94,6 +124,8 @@ npm run dev
 | http://localhost:8000/docs | Swagger del API Gateway |
 | http://localhost:15672 | Consola de RabbitMQ (`logitrack` / `logitrack`) |
 | http://localhost:8025 | Mailpit: correos que envía Notification |
+| http://localhost:9090 | Prometheus (métricas; *Status → Targets*) |
+| http://localhost:3001 | Grafana: tablero de monitoreo |
 
 Usuarios de demostración:
 

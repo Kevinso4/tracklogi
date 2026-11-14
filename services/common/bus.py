@@ -16,6 +16,7 @@ from typing import Awaitable, Callable
 import aio_pika
 
 from .logs import request_id_var
+from .metricas import EVENTOS_PROCESADOS, EVENTOS_PUBLICADOS
 
 EXCHANGE = "logitrack.events"
 DLX = "logitrack.dlx"
@@ -74,6 +75,7 @@ class EventBus:
             headers={"x-request-id": request_id_var.get() or ""},
         )
         await self.exchange.publish(mensaje, routing_key=tipo)
+        EVENTOS_PUBLICADOS.labels(self.servicio, tipo).inc()
         log.info("Evento publicado %s", tipo, extra={"evento": tipo, "routing_key": tipo})
         return cuerpo["event_id"]
 
@@ -102,11 +104,13 @@ class EventBus:
                     try:
                         await handler(evento)
                         await mensaje.ack()
+                        EVENTOS_PROCESADOS.labels(self.servicio, evento.get("tipo", "?"), "ok").inc()
                         return
                     except Exception:
                         log.exception("Fallo procesando %s (intento %s)", evento.get("tipo"), intento + 1)
                         await asyncio.sleep(2**intento)
                 log.error("Evento %s enviado a la DLQ %s.dlq", evento.get("event_id"), cola)
+                EVENTOS_PROCESADOS.labels(self.servicio, evento.get("tipo", "?"), "dlq").inc()
                 await mensaje.reject(requeue=False)
             finally:
                 request_id_var.reset(token)
