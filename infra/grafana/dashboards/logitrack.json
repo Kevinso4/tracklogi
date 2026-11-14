@@ -560,7 +560,7 @@
           },
           "refId": "A",
           "legendFormat": "Envíos creados",
-          "expr": "sum(increase(logitrack_eventos_publicados_total{tipo=\"shipment.created\"}[1h]))"
+          "expr": "(sum(increase(logitrack_eventos_publicados_total{tipo=\"shipment.created\"}[1h]))) or vector(0)"
         },
         {
           "datasource": {
@@ -569,7 +569,7 @@
           },
           "refId": "B",
           "legendFormat": "Envíos entregados",
-          "expr": "sum(increase(logitrack_eventos_publicados_total{tipo=\"shipment.delivered\"}[1h]))"
+          "expr": "(sum(increase(logitrack_eventos_publicados_total{tipo=\"shipment.delivered\"}[1h]))) or vector(0)"
         },
         {
           "datasource": {
@@ -578,7 +578,7 @@
           },
           "refId": "C",
           "legendFormat": "Alertas de mantenimiento",
-          "expr": "sum(increase(logitrack_eventos_publicados_total{tipo=~\"maintenance.*\"}[1h]))"
+          "expr": "(sum(increase(logitrack_eventos_publicados_total{tipo=~\"maintenance.*\"}[1h]))) or vector(0)"
         },
         {
           "datasource": {
